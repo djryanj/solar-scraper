@@ -1,0 +1,15 @@
+extends layout
+block content
+ h1 #{ecuName} at #{siteName}
+ h3 Current Power #{currentPower}
+ h3 Daily Solar Generated #{dailyGen}
+ h3 Total Solar Generated #{totalGen}
+ h4 Inverter Statuses
+ ul
+    each val in data
+        li Panel: #{val.inverterID}
+        ul
+            li Current power generation (W): #{val.currentPower}
+            li Grid Frequency (Hz): #{val.gridFrequency}
+            li Grid Voltage (V): #{val.gridVoltage}
+            li Inverter Temperature (&#176C): #{val.temperature}

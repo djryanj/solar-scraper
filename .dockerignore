@@ -1,0 +1,12 @@
+.dockerignore
+.env
+*/.git
+.git
+.gitignore
+*/.vs
+.vs
+*/node_modules
+node_modules
+Dockerfile
+package-lock.json
+runlog.log
