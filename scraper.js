@@ -25,6 +25,9 @@ const getResults = async () => {
     totalGen = $summ('.panel-body table tbody tr:nth-child(2) td').text();
     currentPower = $summ('.panel-body table tbody tr:nth-child(3) td').text();
     dailyGen = $summ('.panel-body table tbody tr:nth-child(4) td').text();
+    carbonOffset = parseInt($summ('.list-group > .list-group-item:nth-child(6) center').text());
+    treesPlanted = parseInt($summ('.list-group > .list-group-item:nth-child(5) center').text());
+    gallonsSaved = parseInt($summ('.list-group > .list-group-item:nth-child(4) center').text());
  
     const $rt = await fetchRealTimeData();
     tableParse2($rt);
@@ -47,6 +50,9 @@ const getResults = async () => {
         siteName,
         ecuName,
         data,
+        carbonOffset,
+        gallonsSaved,
+        treesPlanted,
     };
 };
  
