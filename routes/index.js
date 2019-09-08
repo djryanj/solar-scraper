@@ -4,8 +4,12 @@ const getResults = require("../scraper");
 
 /* GET home page. */
 router.get("/", async function(req, res, next) {
-  const result = await getResults();
-  res.render("index", result);
+  try {
+    const result = await getResults();
+    res.render("index", result);
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = router;

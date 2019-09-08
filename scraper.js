@@ -9,22 +9,14 @@ let siteName = process.env.SITENAME || "Your House!";
 let ecuName = "";
 
 const fetchSummaryData = async () => {
-    try {
-        const result = await axios.get(summaryUrl);
-        return cheerio.load(result.data);
-    } catch (e) {
-        throw new Error(e.message);
-    }
+    const result = await axios.get(summaryUrl);
+    return cheerio.load(result.data);
 };
 
  const fetchRealTimeData = async () => {
-    try {
-        const result = await axios.get(realTimeDataURL);
-        const data = cheerio.load(result.data);
-        return cheerio.load(data.root().html()); 
-    } catch (e) {
-        throw new Error(e.message);
-    }
+    const result = await axios.get(realTimeDataURL);
+    const data = cheerio.load(result.data);
+    return cheerio.load(data.root().html()); 
 };
 
 const getResults = async () => {
