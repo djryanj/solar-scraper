@@ -36,10 +36,10 @@ const getResults = async () => {
     data = data.map(val => {
         var rObj = {};
         rObj.inverterID = val.inverterID;
-        rObj.currentPower = parseInt(val.currentPower);
-        rObj.gridFrequency = parseFloat(val.gridFrequency);
-        rObj.gridVoltage = parseInt(val.gridVoltage);
-        rObj.temperature = parseInt(val.temperature);
+        rObj.currentPower = parseInt(val.currentPower) || 0;
+        rObj.gridFrequency = parseFloat(val.gridFrequency) || 0;
+        rObj.gridVoltage = parseInt(val.gridVoltage) || 0;
+        rObj.temperature = parseInt(val.temperature) || 0;
         rObj.reportingTime = val.reportingTime;
         return rObj;
     });
