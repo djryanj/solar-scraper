@@ -15,17 +15,19 @@ You will need to define at least the environment variable ECUHOST in order to ru
 
 ## Environment Variables
 
-Two environment variables exist:
+Three environment variables exist:
 
     ECUHOST=<your-ecu-host-or-ip>
     SITENAME=your friendly site name
+    PORT=<tcp-port-for-express>
   
- ECUHOST is the hostname or IP address of your APSolar ECU
- SITENAME is a friendly name for your home; something like "Jacobs Home". This variable is not used in the metrics exposed.
+ ECUHOST is the hostname or IP address of your APSolar ECU. Defaults to 192.168.1.1.
+ SITENAME is a friendly name for your home; something like "Jacobs Home". This variable is not used in the metrics exposed. Defaults to "Your House!"
+ PORT is the port to expose the webserver on inside the container. Defaults to 3000.
 
 ## Network
 
-Exposes port 3000.
+Exposes port 3000 by default. Change the PORT environment variable if you want to change it.
 
 ## Endpoints
 
