@@ -4,6 +4,13 @@ const router = express.Router();
 const getResults = require("../scraper");
 const register = new client.Registry();
 
+// might as well collect some stuff about this server
+const collectDefaultMetrics = client.collectDefaultMetrics;
+
+// Probe every 5th second and set to the registry we're using
+collectDefaultMetrics({ timeout: 5000 });
+collectDefaultMetrics({ register });
+
 // register all the guages
 const totalGen = new client.Gauge({
     name: "total_generated",
@@ -73,23 +80,27 @@ register.registerMetric(panelVoltage);
 
 /* GET metrics page. */
 router.get("/", async function(req, res, next) {
-    const result = await getResults();
+    try {
+        const result = await getResults();
 
-    dailyGen.set(parseFloat(result.dailyGen.replace(/[^0-9.]/g, "")));
-    totalGen.set(parseFloat(result.totalGen.replace(/[^0-9.]/g, "")));
-    currentPower.set(parseFloat(result.currentPower.replace(/[^0-9.]/g, "")));
-    treesPlanted.set(result.treesPlanted);
-    gallonsOffset.set(result.gallonsSaved);
-    carbonOffset.set(result.carbonOffset);
+        dailyGen.set(parseFloat(result.dailyGen.replace(/[^0-9.]/g, "")));
+        totalGen.set(parseFloat(result.totalGen.replace(/[^0-9.]/g, "")));
+        currentPower.set(parseFloat(result.currentPower.replace(/[^0-9.]/g, "")));
+        treesPlanted.set(result.treesPlanted);
+        gallonsOffset.set(result.gallonsSaved);
+        carbonOffset.set(result.carbonOffset);
 
-    result.data.forEach((element, index) => {
-        panelPower.labels(element.inverterID).set(element.currentPower);
-        panelVoltage.labels(element.inverterID).set(element.gridVoltage);
-        panelHz.labels(element.inverterID).set(element.gridFrequency);
-        panelTemp.labels(element.inverterID).set(element.temperature);  
-    });
-    res.set('Content-Type', register.contentType);
-    res.end(register.metrics());
+        result.data.forEach((element, index) => {
+            panelPower.labels(element.inverterID).set(element.currentPower);
+            panelVoltage.labels(element.inverterID).set(element.gridVoltage);
+            panelHz.labels(element.inverterID).set(element.gridFrequency);
+            panelTemp.labels(element.inverterID).set(element.temperature);  
+        });
+        res.set('Content-Type', register.contentType);
+        res.end(register.metrics());
+    } catch (e) {
+        next(e);
+    }  
 });
 
 module.exports = router;

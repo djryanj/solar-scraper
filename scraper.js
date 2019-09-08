@@ -9,18 +9,28 @@ let siteName = process.env.SITENAME || "Your House!";
 let ecuName = "";
 
 const fetchSummaryData = async () => {
-    const result = await axios.get(summaryUrl);
-    return cheerio.load(result.data);
- };
+    try {
+        const result = await axios.get(summaryUrl);
+        return cheerio.load(result.data);
+    } catch (e) {
+        throw new Error(e.message);
+    }
+};
 
  const fetchRealTimeData = async () => {
-    const result = await axios.get(realTimeDataURL);
-    const data = cheerio.load(result.data);
-    return cheerio.load(data.root().html()); 
- };
+    try {
+        const result = await axios.get(realTimeDataURL);
+        const data = cheerio.load(result.data);
+        return cheerio.load(data.root().html()); 
+    } catch (e) {
+        throw new Error(e.message);
+    }
+};
 
 const getResults = async () => {
     const $summ = await fetchSummaryData();
+    const $rt = await fetchRealTimeData();
+
     ecuName = $summ('#ecu_title').text(); 
     totalGen = $summ('.panel-body table tbody tr:nth-child(2) td').text();
     currentPower = $summ('.panel-body table tbody tr:nth-child(3) td').text();
@@ -28,8 +38,7 @@ const getResults = async () => {
     carbonOffset = parseInt($summ('.list-group > .list-group-item:nth-child(6) center').text());
     treesPlanted = parseInt($summ('.list-group > .list-group-item:nth-child(5) center').text());
     gallonsSaved = parseInt($summ('.list-group > .list-group-item:nth-child(4) center').text());
- 
-    const $rt = await fetchRealTimeData();
+
     tableParse2($rt);
     var data = $rt("table").tableToJSON();
     data = data.map(val => {
