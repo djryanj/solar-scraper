@@ -37,9 +37,9 @@ const getResults = async () => {
         var rObj = {};
         rObj.inverterID = val.inverterID;
         rObj.currentPower = parseInt(val.currentPower) || 0;
-        rObj.gridFrequency = parseFloat(val.gridFrequency) || null;
+        rObj.gridFrequency = parseFloat(val.gridFrequency) || 0;
         rObj.gridVoltage = parseInt(val.gridVoltage) || 0;
-        rObj.temperature = parseInt(val.temperature) || null;
+        rObj.temperature = parseInt(val.temperature) || 0;
         rObj.reportingTime = val.reportingTime;
         return rObj;
     });
