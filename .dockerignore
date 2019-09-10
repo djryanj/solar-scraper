@@ -8,5 +8,4 @@
 */node_modules
 node_modules
 Dockerfile
-package-lock.json
 runlog.log
