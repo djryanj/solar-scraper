@@ -3,13 +3,13 @@
 
 trigger:
 - master
-- devs
+- dev
 
 resources:
 - repo: self
 
 variables:
-  tag: '$(Build.BuildId)'
+  tag: '$(Build.Repository.Name)'
 
 stages:
 - stage: Build
@@ -26,5 +26,5 @@ stages:
         repository: 'djryanj/solar-scraper'
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
-        tags: '$(Build.Repository.Name)'
+        tags: '$(tag)'
         addPipelineData: false
