@@ -2,14 +2,13 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
-- master
 - dev
 
 resources:
 - repo: self
 
 variables:
-  tag: '$(Build.SourceBranchName)'
+  tag: '$(Build.BuildId)'
 
 stages:
 - stage: Build
