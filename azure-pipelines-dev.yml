@@ -25,5 +25,5 @@ stages:
         repository: 'djryanj/solar-scraper'
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
-        tags: '$(tag)'
+        tags: 'dev'
         addPipelineData: false
