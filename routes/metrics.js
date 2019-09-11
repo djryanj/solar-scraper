@@ -13,55 +13,55 @@ collectDefaultMetrics({ register });
 
 // register all the guages
 const totalGen = new client.Gauge({
-    name: "total_generated",
+    name: "solar_total_generated",
     help: "Total generated solar as reported by the ECU in kWh"
 });
 
 const dailyGen = new client.Gauge({
-    name: "daily_generated",
+    name: "solar_daily_generated",
     help: "Solar generated today as reported by the ECU in kWh"
 });
 
 const currentPower = new client.Gauge({
-    name: "current_total_power",
+    name: "solar_current_total_power",
     help: "Current solar generation as reported by the ECU in Watts (W)"
 });
 
 const carbonOffset = new client.Gauge({
-    name: "carbon_offset",
+    name: "solar_carbon_offset",
     help: "Estimated carbon offset in KG of CO2"
 });
 
 const gallonsOffset = new client.Gauge({
-    name: "gallons_offset",
+    name: "solar_gallons_offset",
     help: "Estimated carbon offset in gallons of gasoline"
 });
 
 const treesPlanted = new client.Gauge({
-    name: "trees_planted",
+    name: "solar_trees_planted",
     help: "Estimated carbon offset in trees planted"
 });
 
 const panelVoltage = new client.Gauge({
-    name: "panel_voltage",
+    name: "solar_inverter_grid_voltage",
     help: "Current grid voltage for panel in Volts AC (V)",
     labelNames: [ 'inverterId' ]
 })
 
 const panelPower = new client.Gauge({
-    name: "panel_power",
+    name: "solar_panel_power",
     help: "Current power generation for panel in Watts (W)",
     labelNames: [ 'inverterId' ]
 })
 
 const panelTemp = new client.Gauge({
-    name: "panel_temperature",
+    name: "solar_inverter_temperature",
     help: "Current inverter temperature for panel in degrees C",
     labelNames: [ 'inverterId' ]
 })
 
 const panelHz = new client.Gauge({
-    name: "panel_frequency",
+    name: "solar_panel_grid_frequency",
     help: "Current grid frequency for panel in Hertz (Hz)",
     labelNames: [ 'inverterId' ]
 })
