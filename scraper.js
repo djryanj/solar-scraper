@@ -1,7 +1,7 @@
 const cheerio = require("cheerio");
 const axios = require("axios");
 
-const ecuHost = process.env.ECUHOST || "192.168.0.1";
+const ecuHost = process.env.ECUHOST || "192.168.1.1";
 
 const summaryUrl = "http://"+ecuHost+"/index.php/home";
 const realTimeDataURL = "http://"+ecuHost+"/index.php/realtimedata";
