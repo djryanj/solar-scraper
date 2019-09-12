@@ -6,6 +6,7 @@ const getResults = require("../scraper");
 router.get("/", async function(req, res, next) {
   try {
     const result = await getResults();
+    result.version = process.env.npm_package_version;
     res.render("index", result);
   } catch (e) {
     next(e);

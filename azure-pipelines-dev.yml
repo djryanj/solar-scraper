@@ -28,4 +28,3 @@ stages:
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
         tags: 'dev'
-        addPipelineData: false

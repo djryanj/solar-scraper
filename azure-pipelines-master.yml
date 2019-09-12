@@ -25,4 +25,3 @@ stages:
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
         tags: 'latest'
-        addPipelineData: false
