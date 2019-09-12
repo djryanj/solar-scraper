@@ -4,6 +4,8 @@
 trigger:
 - dev
 
+pr: none
+
 resources:
 - repo: self
 
