@@ -11,7 +11,7 @@ function getLocalGit() {
     if (rev.indexOf(':') === -1) {
         return rev;
     } else {
-      return fs.readFileSync('.git/' + rev.substring(5, rev.length-1)).toString().substring(0,6);
+      return fs.readFileSync('.git/' + rev.substring(5, rev.length-1)).toString().substring(0,7);
     }
   } catch (e) {
     return "missingBuildId";
@@ -20,7 +20,7 @@ function getLocalGit() {
 }
 
 if (process.env.BUILDID) {
-  var gitCommit = (process.env.BUILDID).toString().substring(0,6);
+  var gitCommit = (process.env.BUILDID).toString().substring(0,7);
 } else {
   var gitCommit = getLocalGit();
 }
