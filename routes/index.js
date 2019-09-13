@@ -25,6 +25,7 @@ if (process.env.BUILDID) {
   var gitCommit = getLocalGit();
 }
 
+const azureBuildNumber = process.env.BUILDNUMBER || "local";
 const environment = process.env.SOURCEBRANCHNAME || "local";
 const vers = process.env.npm_package_version + "-" + environment + "-" + gitCommit;
 
@@ -34,6 +35,7 @@ router.get("/", async function(req, res, next) {
     const result = await getResults();
     result.version = vers;
     result.hostname = hostname;
+    result.azureBuildNumber = azureBuildNumber;
     res.render("index", result);
   } catch (e) {
     next(e);
