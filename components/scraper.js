@@ -1,10 +1,10 @@
 const cheerio = require("cheerio");
 const axios = require("axios");
 
-const ecuHost = process.env.ECUHOST || "192.168.1.1";
+const ecuHost = process.env.ECUHOST || "192.168.100.2";
 
-const summaryUrl = "http://"+ecuHost+"/index.php/home";
-const realTimeDataURL = "http://"+ecuHost+"/index.php/realtimedata";
+const summaryUrl = "http://" + ecuHost + "/index.php/home";
+const realTimeDataURL = "http://" + ecuHost + "/index.php/realtimedata";
 let siteName = process.env.SITENAME || "Your House!";
 let ecuName = "";
 
@@ -13,17 +13,17 @@ const fetchSummaryData = async () => {
     return cheerio.load(result.data);
 };
 
- const fetchRealTimeData = async () => {
+const fetchRealTimeData = async () => {
     const result = await axios.get(realTimeDataURL);
     const data = cheerio.load(result.data);
-    return cheerio.load(data.root().html()); 
+    return cheerio.load(data.root().html());
 };
 
 const getResults = async () => {
     const $summ = await fetchSummaryData();
     const $rt = await fetchRealTimeData();
 
-    ecuName = $summ('#ecu_title').text(); 
+    ecuName = $summ('#ecu_title').text();
     totalGen = $summ('.panel-body table tbody tr:nth-child(2) td').text();
     currentPower = $summ('.panel-body table tbody tr:nth-child(3) td').text();
     dailyGen = $summ('.panel-body table tbody tr:nth-child(4) td').text();
@@ -56,13 +56,13 @@ const getResults = async () => {
         treesPlanted,
     };
 };
- 
+
 function tableParse2($) {
     // from https://jsfiddle.net/Mottie/4E2L6/9/
     // modified to not use jquery by me
     'use strict';
 
-    $.fn.tableToJSON = function (opts) {
+    $.fn.tableToJSON = function(opts) {
 
         // Set options
         var defaults = {
@@ -74,13 +74,14 @@ function tableParse2($) {
 
         opts = defaults;
 
-        var notNull = function (value) {
+        var notNull = function(value) {
             return value !== undefined && value !== null;
         };
 
-        var arraysToHash = function (keys, values) {
-            var result = {}, index = 0;
-            values.forEach(function (value) {
+        var arraysToHash = function(keys, values) {
+            var result = {},
+                index = 0;
+            values.forEach(function(value) {
                 if (index < keys.length && notNull(value)) {
                     result[keys[index]] = value;
                     index++;
@@ -89,30 +90,30 @@ function tableParse2($) {
             return result;
         };
 
-        var cellValues = function (cellIndex, cell) {
+        var cellValues = function(cellIndex, cell) {
             var value, result;
-                var override = $(cell).data('override');
-                if (opts.allowHTML) {
-                    value = $(cell).html().trim();
-                } else {
-                    value = $(cell).text().trim();
-                }
-                result = notNull(override) ? override : value;
+            var override = $(cell).data('override');
+            if (opts.allowHTML) {
+                value = $(cell).html().trim();
+            } else {
+                value = $(cell).text().trim();
+            }
+            result = notNull(override) ? override : value;
             return result;
         };
 
-        var rowValues = function (row, camel) {
+        var rowValues = function(row, camel) {
             if (camel === undefined) {
                 camel = false;
             }
             var result = [];
-            $(row).children('td,th').each(function (cellIndex, cell) {
+            $(row).children('td,th').each(function(cellIndex, cell) {
                 if (camel) {
                     result.push(camelize(cellValues(cellIndex, cell)));
                 } else {
                     result.push(cellValues(cellIndex, cell));
                 }
-                
+
             });
             return result;
         };
@@ -120,29 +121,29 @@ function tableParse2($) {
         function camelize(str) {
             // credit to https://stackoverflow.com/a/2970667
             return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
-              if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
-              return index == 0 ? match.toLowerCase() : match.toUpperCase();
+                if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
+                return index == 0 ? match.toLowerCase() : match.toUpperCase();
             });
         }
 
-        var getHeadings = function (table) {
+        var getHeadings = function(table) {
             var firstRow = table.find('tr:nth-child(1)').first();
             return notNull(opts.headings) ? opts.headings : rowValues(firstRow, true);
         };
 
-        var construct = function (table, headings) {
+        var construct = function(table, headings) {
             var i, j, len, len2, txt, $row, $cell,
-            tmpArray = [],
+                tmpArray = [],
                 cellIndex = 0,
                 result = [];
-            table.children('tbody,*').children('tr').each(function (rowIndex, row) {
+            table.children('tbody,*').children('tr').each(function(rowIndex, row) {
                 if (rowIndex > 0 || notNull(opts.headings)) {
                     $row = $(row);
                     if (!tmpArray[rowIndex]) {
                         tmpArray[rowIndex] = [];
                     }
                     cellIndex = 0;
-                    $row.children().each(function () {
+                    $row.children().each(function() {
                         $cell = $(this);
 
                         // process rowspans

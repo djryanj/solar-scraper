@@ -1,8 +1,9 @@
 const client = require('prom-client');
 const express = require("express");
 const router = express.Router();
-const getResults = require("../scraper");
+const getResults = require("../components/scraper");
 const register = new client.Registry();
+const cache = require("../components/cache");
 
 // might as well collect some stuff about this server
 const collectDefaultMetrics = client.collectDefaultMetrics;
@@ -79,7 +80,7 @@ register.registerMetric(panelVoltage);
 
 
 /* GET metrics page. */
-router.get("/", async function(req, res, next) {
+router.get("/", cache(270), async function(req, res, next) {
     try {
         const result = await getResults();
 
@@ -97,7 +98,7 @@ router.get("/", async function(req, res, next) {
             panelTemp.labels(element.inverterID).set(element.temperature);  
         });
         res.set('Content-Type', register.contentType);
-        res.end(register.metrics());
+        res.send(register.metrics());
     } catch (e) {
         next(e);
     }  
