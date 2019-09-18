@@ -1,9 +1,9 @@
 extends layout
 block content
- h1 #{ecuName} at #{siteName}
- h3 Current Power #{currentPower}
- h3 Daily Solar Generated #{dailyGen}
- h3 Total Solar Generated #{totalGen}
+ h1 #{ecuName} at #{siteName} at #{ecuHost}
+ h3 Current System Power: #{currentSystemPower} W
+ h3 Daily Solar Generated: #{dailyGen} kWh
+ h3 Total Solar Generated: #{totalGen} kWh
  h3 Estimated Carbon Offset:
  ul
     li #{treesPlanted} trees planted

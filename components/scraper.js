@@ -1,20 +1,14 @@
 const cheerio = require("cheerio");
 const axios = require("axios");
-
-const ecuHost = process.env.ECUHOST || "192.168.100.2";
-
-const summaryUrl = "http://" + ecuHost + "/index.php/home";
-const realTimeDataURL = "http://" + ecuHost + "/index.php/realtimedata";
-let siteName = process.env.SITENAME || "Your House!";
-let ecuName = "";
+const vars = require("./vars");
 
 const fetchSummaryData = async () => {
-    const result = await axios.get(summaryUrl);
+    const result = await axios.get(vars.summaryUrl);
     return cheerio.load(result.data);
 };
 
 const fetchRealTimeData = async () => {
-    const result = await axios.get(realTimeDataURL);
+    const result = await axios.get(vars.realTimeDataURL);
     const data = cheerio.load(result.data);
     return cheerio.load(data.root().html());
 };
@@ -24,12 +18,13 @@ const getResults = async () => {
     const $rt = await fetchRealTimeData();
 
     ecuName = $summ('#ecu_title').text();
-    totalGen = $summ('.panel-body table tbody tr:nth-child(2) td').text();
-    currentPower = $summ('.panel-body table tbody tr:nth-child(3) td').text();
-    dailyGen = $summ('.panel-body table tbody tr:nth-child(4) td').text();
+    totalGen = parseFloat($summ('.panel-body table tbody tr:nth-child(2) td').text());
+    currentSystemPower = parseInt($summ('.panel-body table tbody tr:nth-child(3) td').text());
+    dailyGen = parseFloat($summ('.panel-body table tbody tr:nth-child(4) td').text());
     carbonOffset = parseInt($summ('.list-group > .list-group-item:nth-child(6) center').text());
     treesPlanted = parseInt($summ('.list-group > .list-group-item:nth-child(5) center').text());
     gallonsSaved = parseInt($summ('.list-group > .list-group-item:nth-child(4) center').text());
+    siteName = vars.siteName;
 
     tableParse2($rt);
     var data = $rt("table").tableToJSON();
@@ -47,13 +42,13 @@ const getResults = async () => {
     return {
         totalGen,
         dailyGen,
-        currentPower,
+        currentSystemPower,
         siteName,
-        ecuName,
-        data,
+        ecuName,        
         carbonOffset,
         gallonsSaved,
         treesPlanted,
+        data,
     };
 };
 

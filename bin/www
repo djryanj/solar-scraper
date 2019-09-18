@@ -4,9 +4,10 @@
  * Module dependencies.
  */
 
-var app = require('../app');
+var app = require('../components/app');
 var debug = require('debug')('solar-scraper:server');
 var http = require('http');
+const mqttReports = require('../components/mqtt');
 
 /**
  * Get port from environment and store in Express.
@@ -28,6 +29,12 @@ var server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+/**
+ * Start MQTT
+ */
+
+mqttReports();
 
 /**
  * Normalize a port into a number, string, or false.
