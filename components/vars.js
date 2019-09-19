@@ -15,9 +15,9 @@ const summaryUrl = "http://" + ecuHost + "/index.php/home";
 const realTimeDataURL = "http://" + ecuHost + "/index.php/realtimedata";
 const siteName = process.env.SITENAME || "Your House!";
 
-const useMqtt = process.env.USE_MQTT || true;
-const useHaMqtt = process.env.USE_HA_MQTT || true;
-const mqttHost = "mqtt://" + (process.env.MQTT_HOST || "mqtt.thewulph.com")
+const useMqtt = process.env.USE_MQTT || false;
+const useHaMqtt = process.env.USE_HA_MQTT || false;
+const mqttHost = "mqtt://" + (process.env.MQTT_HOST || "test.mosquitto.org")
 const mqttPort = process.env.MQTT_PORT || "1883";
 const mqttUserName = process.env.MQTT_USERNAME || null;
 const mqttPass = process.env.MQTT_PASSWORD || null;
