@@ -69,7 +69,7 @@ const panelHz = new client.Gauge({
 })
 
 const scraperVersion = new client.Gauge({
-    name: "solar_scraper_version_info",
+    name: "solar_scraper_info",
     help: "Solar scraper version information",
     labelNames: [ 'version' , 'hostname', 'buildId', 'ecuHost' ]
 })
