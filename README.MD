@@ -1,50 +1,207 @@
+
 # APSolar ECU Prometheus Exporter
 
-An unofficial Prometheus exporter for APSolar ECU's written in node.js by [Ryan Jacobs](https://github.com/djryanj).
+  
+
+A containerized data scraper for APSolar ECU's written in node.js by [Ryan Jacobs](https://github.com/djryanj). It has the following features:
+
+  
+
+* Prometheus metrics exporter
+
+* JSON data endpoint
+
+* MQTT data export
+
+* Data export to MQTT that is follows the topic format required for auto-discovery in [Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/).
+
+  
 
 # About
 
-Since most of us that have installed [APSolar ECU's](https://usa.apsystems.com/products/monitor/) in the home don't have access to their monitoring site or API to get information and may be curious about exporting generation and all other data provided by the ECU into something a bit more query-able (at the very least), this exporter scrapes the data from the ECU's local web page and provides a /metrics endpoint for Prometheus to scrape. 
+  
 
-It can also output the metrics to an MQTT server. This is useful for decoupling the scraper and Prometheus (or for consuming the metrics by something else). Note that in order to use the MQTT version of the metrics in Prometheus, you'll need some other bit of code running somewhere like [MQTTGateway for Prometheus](https://github.com/inuits/mqttgateway).
+Since most of us that have installed [APSolar ECU's](https://usa.apsystems.com/products/monitor/) in the home don't have access to APSolar's monitoring site or API to get information and may be curious about exporting generation and all other data provided by the ECU into something a bit more query-able (at the very least), this data scraper scrapes the data from the ECU's local web page and provides a number of methods to ingest that data.
+
+  
+
+This project started life as an unofficial Prometheus exporter for the data provided by the APSolar ECU as Prometheus was the time-series database of choice for me at the time (and it's a little easier to get started with for something simple like this vs. InfluxDB). It became apparent quickly that having the scraper provide a number of different data formats for whatever someone might want to do with it was the way to go, and so it grew a JSON endpoint and not one, but two [MQTT](#mqtt) data formats.
+
+  
+
+At this time, providing support for InfluxDB is being considered for a future release.
+
+**NOTE: The APSolar ECU (at this time) only updates the statistics every 5 minutes. As a result, the scraper will only scrape every 5 minutes. Repeated hits to the scraper will produce a cached copy for those 5 minutes. Please set any downstream ingestion to respect this time limit.**
+
+  
 
 # Running
 
-You will need to define at least the environment variable ECUHOST in order to run the image and ensure that port 3000 is forwarded somehow.
-
-    docker run --env ECUHOST=<your-ecu-host-or-ip> -p 3000:3000 djryanj/solar-scraper:latest
-
-
-## Environment Variables
-
-Three environment variables exist:
-
-    ECUHOST=<your-ecu-host-or-ip>
-    SITENAME=your friendly site name
-    PORT=<tcp-port-for-express>
   
- ECUHOST is the hostname or IP address of your APSolar ECU. Defaults to 192.168.1.1.
- SITENAME is a friendly name for your home; something like "Jacobs Home". This variable is not used in the metrics exposed. Defaults to "Your House!"
- PORT is the port to expose the webserver on inside the container. Defaults to 3000.
+
+You will need to define at least the environment variable ECUHOST in order to run the image and ensure that port 3000 is forwarded somehow. Further configuration information is available below.
+
+  
+
+docker run --env ECUHOST=<your-ecu-host-or-ip> -p 3000:3000 djryanj/solar-scraper:latest
+
+  
+  
+
+## Configuration
+
+  
+
+Configuration is done via environment variables only.
+
+  
+
+### Configurable Environment Variables
+
+  
+
+The following environment variables directly affect the operation of the scraper. Only one is required to be set; the rest are optional depending on what features you want to do (and the configuration required for them). There are defaults for all.
+
+  
+
+* ``ECUHOST=<your-ecu-host-or-ip>`` (required)
+
+* ``PORT=<tcp-port-for-express>``
+
+* ``USE_MQTT=<true|false>``
+
+* ``USE_HA_MQTT=<true|false>``
+
+* ``MQTT_HOST=<your-mqtt-host>``
+
+* ``MQTT_PORT=<your-mqtt-port>``
+
+* ``MQTT_USERNAME=<your-mqtt-username>``
+
+* ``MQTT_PASSWORD=<your-mqtt-password>``
+
+* ``MQTT_TOPIC=<base-mqtt-topic>``
+
+* ``HA_MQTT_TOPIC=<base-homeassistant-mqtt-topic>``
+---  
+
+``ECUHOST`` (Required) 
+The hostname or IP address of your APSolar ECU. 
+* Default: ``192.168.1.1``
+
+``PORT``
+The port that the container listens on (internally). Be sure to change the port Docker forwards if you change this.
+* Default: ``3000``
+
+``USE_MQTT``
+Set to **true** if you want to use basic MQTT. See the [MQTT](#mqtt) section for more information. **Be sure to also set MQTT_HOST**!!
+* Default: ``false``
+
+``USE_HA_MQTT``
+Set to **true** if you want to use Home Assistant to auto-discover solar information via MQTT. Note that USE_MQTT and USE_HA_MQTT are independent; you do not need to set USE_MQTT to true if USE_HA_MQTT is true. **Be sure to also set MQTT_HOST**!!
+* Default: ``false``
+
+``MQTT_HOST``
+Set to the IP address or DNS name of your MQTT server. Both USE_MQTT and USE_HA_MQTT use the same host.
+* Default: ``test.mosquitto.org``
+
+**NOTE: The default host could potentially expose information to a public server you don't want exposed. Be sure to set this if you set USE_MQTT or USE_HA_MQTT to true!**
+**NOTE: At this time, providing a self-signed certificate file for TLS communications is not supported. If your MQTT server uses PKI from a well-known certificate authority such as letsencrypt (be sure that the WHOLE chain is sent), it should work. At this time, self-signed cert behaviour is untested.**
+
+``MQTT_USERNAME``
+If you need to supply a username for your MQTT server, set it here.
+* Default: ``null/unset`` (works for anonymous MQTT servers)
+
+``MQTT_PASSWORD``
+If you need to supply a password for your MQTT server, set it here. Note that it will be visible in the logs. You could provide this via Docker secrets.
+* Default: ``null/unset`` (works for anonymous MQTT servers)
+
+``MQTT_TOPIC``
+Base topic for standard MQTT data. See [MQTT](#mqtt) section for more information.
+* Default: ``home/solar``
+
+``HA_MQTT_TOPIC``
+Base topic for Home Assistant auto-discovery. This must match the base topic in your Home Assistant configuration.yaml. 
+**Note: this can only be a single label (e.g. "homeassistant" or "hass") or auto-discovery will fail.**
+* Default: ``homeassistant``
+
+### Informational Environment Variables
+The following environment variables provide information into the scraper but do not affect operation beyond the cosmetic (they are exported with metrics and are visible on the browseable home page). 
+
+``SITENAME``
+ A friendly site name. Mostly visible on the home page of the scraper but also exported with metrics.
+ * Default: ``Your House!``
+ 
+``BUILDID``
+The BUILDID is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the git hash (this was mostly used during development; a future release may hide this for production builds). The BUILDID can be read from the local .git directory, but that is not present in the Docker container.
+* Default: ``missingBuildId`` (when nothing is passed to Docker or the .git directory is not present locally); otherwise the 7-character git hash of the 
+
+``BUILDNUMBER``
+The BUILDNUMBER is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the automated build number, e.g. 20190910.1.
+* Default: ``local``
+
+``SOURCEBRANCHNAME``
+The SOURCEBRANCHNAME is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the git branch that the container was built from, e.g. master.
+* Default: ``local``
 
 ## Network
+Exposes port tcp/3000 by default. Change the PORT environment variable if you want to change it. Leverage something like [jwilder/nginx-proxy](https://hub.docker.com/r/jwilder/nginx-proxy/) to automatically forward a hostname from the Docker host's port 80 or 443 to this container.  
 
-Exposes port 3000 by default. Change the PORT environment variable if you want to change it.
+# Endpoints
+## Default
+There is a default cosmetic endpoint at ``/`` (e.g. http://docker-host:3000/) that shows all data in a human-readable form. 
+## Prometheus
+Prometheus expects an endpoint at ``/metrics``, which is where it is. In addition to the custom metrics provided by this scraper, there are node.js-specific metrics exported as well. You can browse the endpoint if you wish.
 
-## Endpoints
+All metrics are prefixed by ``solar_``. The list of metrics is below.
 
-The default index endpoint (e.g. http://docker-host:3000/) prints out all the data ingested by the scraper along with the site name environment variable to make it sorta pretty.
+### Metrics
 
-/metrics is the Prometheus-formatted metrics endpoint.
+``solar_total_generated``: Total solar power generated over the lifetime of the array in kWh.
+``solar_daily_generated``: Total solar power generated today in kWh.
+``solar_current_total_power``: Current solar power output in W.
+``solar_carbon_offset``: Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array.
+``solar_trees_planted``: Estimated carbon offset by the equivalent number of trees that have been planted over the lifetime of the solar array.
+``solar_gallons_offset``: Estimated carbon offset in gallons of gasoline saved over the lifetime of the solar array.
+``solar_scraper_version_info{version="<version>",hostname="<hostname>",buildId="<buildId>",ecuHost="<ecu-host>"}``: Version and other information.
+The following metrics will be one per panel in your array, labelled by inverter ID (see the Administration->ID Management or the Real Time Data links on the ECU to see what inverters are configured). Inverters that have multiple panels connected (e.g. the YC500/600 or YC1000) will have an -A, -B etc. appended to the end.
+``solar_panel_power{inverterId=<inverterId>}``: Current power output of the panel in W.
+``solar_panel_grid_frequency{inverterId=<inverterId>}``: Current grid frequency measured by the panel in Hz.
+``solar_inverter_temperature{inverterId=<inverterId>}``: Current inverter temperature in °C.
+``solar_inverter_grid_voltage{inverterId=<inverterId>}``: Current grid voltage output by the inverter in V.
 
-/json outputs the metrics as a JSON string, useful for consumption by a downstream API.
+## MQTT
+
+Although only one MQTT host is allowed, you can output 2 kinds of MQTT data. One is formatted for use by the [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/), enabled by setting the ``USE_HA_MQTT`` environment variable to ``true``, and the other is a more generically-formatted. 
+
+The ``MQTT_TOPIC`` and ``HA_MQTT_TOPIC`` environment variables, set to ``home/solar`` and ``homeassistant`` respectively by default, are the base topics upon which the rest of the topic labels are built.
+
+**NOTE: Do not use more than a single label (e.g. ``homeassistant`` or ``hass``) for the Home Assistant auto-discovery base topic or auto-discovery will fail.**
+
+### Metrics
+
+
+## JSON/API
 
 # Prometheus Config
 
+  
+
 Here is a sample config block for Prometheus:
+
 ```
+
 - job_name: solar_ecu
-  scrape_interval: 5m
-  static_configs:
-    - targets:
-      - <hostname>
+
+scrape_interval: 5m
+
+static_configs:
+
+- targets:
+
+- <hostname>
+```
+
+# Wax Philosophical
+
+It can also output the metrics to an MQTT server. This is useful for decoupling the scraper and Prometheus (or for consuming the metrics by something else). Note that in order to use the MQTT version of the metrics in Prometheus, you'll need some other bit of code running somewhere like [MQTTGateway for Prometheus](https://github.com/inuits/mqttgateway).
