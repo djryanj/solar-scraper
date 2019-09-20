@@ -50,6 +50,7 @@ The following environment variables directly affect the operation of the scraper
 
 
 ### Informational Environment Variables
+
 The following environment variables provide information into the scraper but do not affect operation beyond the cosmetic (they are exported with metrics and are visible on the browseable home page). None of these are required.
 
 | Variable | Description | Default |
@@ -60,6 +61,7 @@ The following environment variables provide information into the scraper but do 
 | ``SOURCEBRANCHNAME`` | The SOURCEBRANCHNAME is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the git branch that the container was built from, e.g. master. | local
 
 ## Network
+
 Exposes port tcp/3000 by default. Change the ``PORT`` environment variable if you want to change it. Leverage something like [jwilder/nginx-proxy](https://hub.docker.com/r/jwilder/nginx-proxy/) to automatically forward a hostname from the Docker host's port 80 or 443 to this container.  
 
 # Endpoints
@@ -73,7 +75,9 @@ Prometheus expects an endpoint at ``/metrics``, which is where it is. In additio
 All metrics are prefixed by ``solar_``. The list of metrics is below (including the prefix for clarity).
 
 ### Metrics
+
 #### Generic Metrics
+
 |Metric|Description  |
 |--|--|
 |``solar_total_generated``| Total solar power generated over the lifetime of the array in kilowatt hours (kWh).|
@@ -85,6 +89,7 @@ All metrics are prefixed by ``solar_``. The list of metrics is below (including 
 |``solar_scraper_version_info{version="<version>",hostname="<hostname>",buildId="<buildId>",ecuHost="<ecu-host>"}``| Version and other information. |
 
 #### Per-Panel Metrics
+
 The following metrics will be one per panel in your array, labelled by inverter ID (see the Administration->ID Management or the Real Time Data links on the ECU to see what inverters are configured). Inverters that have multiple panels connected (e.g. the YC500/600 or YC1000) will have an -A, -B etc. appended to the end.
 
 |Metric|Description  |
@@ -96,7 +101,7 @@ The following metrics will be one per panel in your array, labelled by inverter 
 
 ## MQTT
 
-Although only one MQTT host is allowed, you can output 2 kinds of MQTT data. One is formatted for use by the [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/), enabled by setting the ``USE_HA_MQTT`` environment variable to ``true``, and the other is a more generically-formatted. 
+Although only one MQTT host is allowed, you can output 2 kinds of MQTT data. One is more generically formatted and published when ``USE_MQTT`` is ``true``; the other is formatted for use by the [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/), enabled by setting the ``USE_HA_MQTT`` environment variable to ``true``.
 
 The generically-formatted data could be suitable for consumption into Prometheus through something like  [MQTTGateway for Prometheus](https://github.com/inuits/mqttgateway). This would achieve a decoupling of the scraper and Prometheus, which could be useful in large systems with many ECU's (though I doubt such a thing would need this software ;) ).
 
@@ -105,8 +110,11 @@ The ``MQTT_TOPIC`` and ``HA_MQTT_TOPIC`` environment variables, set to ``home/so
 **IMPORTANT:** Do not use more than a single label (e.g. ``homeassistant`` or ``hass``) for the Home Assistant auto-discovery base topic or auto-discovery will fail.
 
 ### Metrics - Generic Topic
+
 The following metrics are exported to the ``MQTT_TOPIC`` (e.g. ``home/solar``):
+
 #### Generic Metrics
+
 |Metric|Description  |
 |--|--|
 |``/dailyGen``| Total solar power generated today in kilowatt hours (kWh).|
@@ -133,12 +141,14 @@ The following topics will be one per panel in your array, labelled by inverter I
 |``/ping``|Unix-timestamp for the last published MQTT data.|
 
 ### Metrics - Home Assistant Topic
+
 The following metrics are exported to the ``HA_MQTT_TOPIC`` (e.g. ``homeassistant``).
 All of these will be discovered as ``sensor`` within Home Assistant, due to the topics' full format e.g. ``homeassistant/sensor/totalGen/state``. For more information, see [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/). Therefore, all of the below are relative to ``HA_MQTT_TOPIC/sensor``.
 
 **Note:** For brevity, the ``/state`` suffix for each topic is not added on to the topic name (this is usually not seen in Home Assistant anyway). ``/config`` topics are not presented.
 
 #### General Topics
+
 |Topic|Data|Home Assistant Sensor Name|
 |--|--|--|
 |``/carbonOffset/carbon``| Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array. | ``sensor.carbon_offset_kg_of_co2``|
@@ -149,6 +159,7 @@ All of these will be discovered as ``sensor`` within Home Assistant, due to the 
 |``/totalGen``| Total solar power generated over the lifetime of the array in kilowatt hours (kWh). | ``sensor.lifetime_solar_power_generated``|
 
 #### Per-Panel Topics
+
 Each of the below metrics will exist one per panel/inverter ID.  The panel # for sensors should be the same every run, unless additional inverters are added. 
 
 |Topic|Data|Home Assistant Sensor Name|
