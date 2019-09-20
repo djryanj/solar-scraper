@@ -220,7 +220,3 @@ Here is a sample config block for Prometheus:
   - targets:
     - <hostname>
 ```
-
-# Wax Philosophical
-
-It can also output the metrics to an MQTT server. This is useful for decoupling the scraper and Prometheus (or for consuming the metrics by something else). Note that in order to use the MQTT version of the metrics in Prometheus, you'll need some other bit of code running somewhere like [MQTTGateway for Prometheus](https://github.com/inuits/mqttgateway).
