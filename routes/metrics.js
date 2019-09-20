@@ -1,8 +1,10 @@
 const client = require('prom-client');
 const express = require("express");
 const router = express.Router();
-const getResults = require("../scraper");
+const getResults = require("../components/scraper");
 const register = new client.Registry();
+const cache = require("../components/cache");
+const vars = require("../components/vars");
 
 // might as well collect some stuff about this server
 const collectDefaultMetrics = client.collectDefaultMetrics;
@@ -22,7 +24,7 @@ const dailyGen = new client.Gauge({
     help: "Solar generated today as reported by the ECU in kWh"
 });
 
-const currentPower = new client.Gauge({
+const currentSystemPower = new client.Gauge({
     name: "solar_current_total_power",
     help: "Current solar generation as reported by the ECU in Watts (W)"
 });
@@ -66,9 +68,15 @@ const panelHz = new client.Gauge({
     labelNames: [ 'inverterId' ]
 })
 
+const scraperVersion = new client.Gauge({
+    name: "solar_scraper_info",
+    help: "Solar scraper version information",
+    labelNames: [ 'version' , 'hostname', 'buildId', 'ecuHost' ]
+})
+
 register.registerMetric(totalGen);
 register.registerMetric(dailyGen);
-register.registerMetric(currentPower);
+register.registerMetric(currentSystemPower);
 register.registerMetric(carbonOffset);
 register.registerMetric(treesPlanted);
 register.registerMetric(gallonsOffset);
@@ -76,19 +84,21 @@ register.registerMetric(panelPower);
 register.registerMetric(panelHz);
 register.registerMetric(panelTemp);
 register.registerMetric(panelVoltage);
+register.registerMetric(scraperVersion);
 
 
 /* GET metrics page. */
-router.get("/", async function(req, res, next) {
+router.get("/", cache(vars.cacheLength), async function(req, res, next) {
     try {
         const result = await getResults();
 
-        dailyGen.set(parseFloat(result.dailyGen.replace(/[^0-9.]/g, "")));
-        totalGen.set(parseFloat(result.totalGen.replace(/[^0-9.]/g, "")));
-        currentPower.set(parseFloat(result.currentPower.replace(/[^0-9.]/g, "")));
+        dailyGen.set(result.dailyGen);
+        totalGen.set(result.totalGen);
+        currentSystemPower.set(result.currentSystemPower);
         treesPlanted.set(result.treesPlanted);
         gallonsOffset.set(result.gallonsSaved);
         carbonOffset.set(result.carbonOffset);
+        scraperVersion.labels(vars.vers, vars.hostname, vars.azureBuildNumber, vars.ecuHost).set(1);
 
         result.data.forEach((element, index) => {
             panelPower.labels(element.inverterID).set(element.currentPower);
@@ -97,7 +107,7 @@ router.get("/", async function(req, res, next) {
             panelTemp.labels(element.inverterID).set(element.temperature);  
         });
         res.set('Content-Type', register.contentType);
-        res.end(register.metrics());
+        res.send(register.metrics());
     } catch (e) {
         next(e);
     }  

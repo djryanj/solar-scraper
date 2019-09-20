@@ -4,8 +4,7 @@ const getResults = require("../components/scraper");
 const cache = require("../components/cache");
 const vars = require("../components/vars");
 
-/* GET home page. */
-// Expire the cache after 4mins30secs as the ECU updates every 5 minutes
+/* GET json output page. */
 router.get("/", cache(vars.cacheLength), async function(req, res, next) {
     try {
         const result = await getResults();
@@ -13,11 +12,12 @@ router.get("/", cache(vars.cacheLength), async function(req, res, next) {
         result.hostname = vars.hostname;
         result.azureBuildNumber = vars.azureBuildNumber;
         result.ecuHost = vars.ecuHost;
-        
-        res.render("index", result);
+
+        res.set('Content-Type', 'application/json');
+        res.send(JSON.stringify(result));
     } catch (e) {
         next(e);
-    }
+    }  
 });
 
 module.exports = router;
