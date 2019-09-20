@@ -46,7 +46,7 @@ The following environment variables directly affect the operation of the scraper
 |``MQTT_USERNAME`` | No | If you need to supply a username for your MQTT server, set it here. | null/unset (works for anonymous servers)
 | ``MQTT_PASSWORD`` | No | If you need to supply a password for your MQTT server, set it here. **IMPORTANT!** This will be visible in the logs and if you get container information from the Docker host. You could provide this via Docker secrets. | null/unset (works for anonymous servers)
 | ``MQTT_TOPIC`` | No | Base topic for standard MQTT data. See [MQTT](#mqtt) section for more information. | home/solar
-|``HA_MQTT_TOPIC`` | No | Base topic for Home Assistant auto-discovery. This must match the base topic in your Home Assistant configuration.yaml. **Note:** this can only be a single label (e.g. "homeassistant" or "hass") or auto-discovery will fail.| homeassistant
+|``HA_MQTT_TOPIC`` | No | Base topic for Home Assistant auto-discovery. This must match the base topic in your Home Assistant configuration.yaml. **Note:** this can only be a single label (e.g. ``homeassistant`` or ``hass``) or auto-discovery will fail.| homeassistant
 
 
 ### Informational Environment Variables
@@ -60,7 +60,7 @@ The following environment variables provide information into the scraper but do 
 | ``SOURCEBRANCHNAME`` | The SOURCEBRANCHNAME is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the git branch that the container was built from, e.g. master. | local
 
 ## Network
-Exposes port tcp/3000 by default. Change the PORT environment variable if you want to change it. Leverage something like [jwilder/nginx-proxy](https://hub.docker.com/r/jwilder/nginx-proxy/) to automatically forward a hostname from the Docker host's port 80 or 443 to this container.  
+Exposes port tcp/3000 by default. Change the ``PORT`` environment variable if you want to change it. Leverage something like [jwilder/nginx-proxy](https://hub.docker.com/r/jwilder/nginx-proxy/) to automatically forward a hostname from the Docker host's port 80 or 443 to this container.  
 
 # Endpoints
 
