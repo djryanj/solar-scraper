@@ -34,6 +34,7 @@ Configuration is done via environment variables only.
 ### Configurable Environment Variables
 
 The following environment variables directly affect the operation of the scraper. Only one is required to be set; the rest are optional depending on what features you want to do (and the configuration required for them). There are defaults for all.
+
 | Variable | Required | Description | Default |
 |--|--|--|--|
 |``ECUHOST`` | Yes| IP or hostname of the APSolar ECU to scrape. | 192.168.1.1 |
@@ -50,6 +51,7 @@ The following environment variables directly affect the operation of the scraper
 
 ### Informational Environment Variables
 The following environment variables provide information into the scraper but do not affect operation beyond the cosmetic (they are exported with metrics and are visible on the browseable home page). None of these are required.
+
 | Variable | Description | Default |
 |--|--|--|
 |``SITENAME`` | A friendly site name. Mostly visible on the home page of the scraper but also exported with metrics.| Your House!
