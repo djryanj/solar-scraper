@@ -6,6 +6,7 @@
 const fs = require("fs");
 const os = require("os");
 const hostname = os.hostname();
+const npm_vers = require('../package.json').version
 
 // set these vars if you need to
 const cacheLength = 270; // in seconds
@@ -50,7 +51,7 @@ if (process.env.BUILDID) {
 
 const azureBuildNumber = process.env.BUILDNUMBER || "local";
 const environment = process.env.SOURCEBRANCHNAME || "local";
-const vers = process.env.npm_package_version + "-" + environment + "-" + gitCommit;
+const vers = npm_vers + "-" + environment + "-" + gitCommit;
 
 module.exports = {
     azureBuildNumber : azureBuildNumber,
