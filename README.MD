@@ -194,3 +194,4 @@ Here is a sample config block for Prometheus:
   - targets:
     - <hostname>
 ```
+## CANARY
