@@ -35,7 +35,7 @@ stages:
       displayName: Push Images
       inputs:
         containerRegistry: djryanj-acr
-        repository: humidor-sensor-scraper
+        repository: $(repo)
         command: push
         tags: |
           $(tagBase)-arm64
