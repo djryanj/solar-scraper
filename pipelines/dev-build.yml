@@ -35,7 +35,7 @@ stages:
       displayName: Push Images
       inputs:
         containerRegistry: djryanj-acr
-        repository: $(repo)
+        repository: $(image)
         command: push
         tags: |
           $(tagBase)-arm64
