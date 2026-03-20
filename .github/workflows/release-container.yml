@@ -26,6 +26,13 @@ jobs:
           echo "IMAGE_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
           echo "IMAGE_REPOSITORY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME}" >> "$GITHUB_ENV"
 
+      - name: Normalize release version
+        run: |
+          release_tag='${{ github.event.release.tag_name }}'
+          release_version="${release_tag#v}"
+          echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
+          echo "RELEASE_VERSION=${release_version}" >> "$GITHUB_ENV"
+
       - name: Check out repository at release tag
         uses: actions/checkout@v4
         with:
@@ -49,16 +56,20 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_REPOSITORY }}
+          flavor: |
+            latest=false
           tags: |
-            type=semver,pattern={{version}},value=${{ github.event.release.tag_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name }}
-            type=semver,pattern={{major}},value=${{ github.event.release.tag_name }}
+            type=raw,value=${{ env.RELEASE_TAG }}
+            type=raw,value=${{ env.RELEASE_VERSION }}
+            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_VERSION }}
+            type=semver,pattern={{major}},value=${{ env.RELEASE_VERSION }}
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=solar-scraper
             org.opencontainers.image.description=APSolar ECU Prometheus exporter
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.version=${{ github.event.release.tag_name }}
+            org.opencontainers.image.version=${{ env.RELEASE_TAG }}
             org.opencontainers.image.revision=${{ github.sha }}
 
       - name: Build and push release image
@@ -69,16 +80,23 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             GIT_SHA=${{ github.sha }}
-            GIT_REF=${{ github.event.release.tag_name }}
-            RELEASE_VERSION=${{ github.event.release.tag_name }}
+            GIT_REF=${{ env.RELEASE_TAG }}
+            RELEASE_VERSION=${{ env.RELEASE_TAG }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=release-container
           cache-to: type=gha,mode=max,scope=release-container
 
+      - name: Write published tags
+        run: |
+          echo "Published tags:"
+          echo '${{ steps.meta.outputs.tags }}'
+
       - name: Write workflow summary
         run: |
           echo "## Release container" >> "$GITHUB_STEP_SUMMARY"
           echo "Published release tags for ${IMAGE_REPOSITORY}." >> "$GITHUB_STEP_SUMMARY"
-          echo "Release: ${{ github.event.release.tag_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Release: ${{ env.RELEASE_TAG }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tags:" >> "$GITHUB_STEP_SUMMARY"
+          echo '${{ steps.meta.outputs.tags }}' >> "$GITHUB_STEP_SUMMARY"

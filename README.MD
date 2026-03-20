@@ -58,7 +58,7 @@ This repo now includes GitHub Actions workflows for CI, PR containers, release c
 ### Continuous Integration
 
 - `CI` runs on pull requests and pushes to `main`.
-- It installs dependencies with `npm ci`, runs `npm run check`, and runs the test suite with coverage.
+- It regenerates a clean `package-lock.json`, installs dependencies with `npm ci`, runs `npm run check`, and runs the test suite with coverage.
 
 ### Pull Request Containers
 
@@ -72,8 +72,16 @@ This repo now includes GitHub Actions workflows for CI, PR containers, release c
 - `Release Please` runs on pushes to `main` and maintains a release PR plus GitHub Releases.
 - Releases are driven by Conventional Commits so the generated changelog and version bump are correct.
 - When a GitHub Release is published, `Release Container` builds and pushes the final multi-architecture image to GitHub Container Registry.
-- Release container tags include the exact version, the `major.minor` line, the `major` line, and `latest`.
+- Release container tags include the exact GitHub release tag, the plain version without the `v` prefix, the `major.minor` line, the `major` line, and `latest`.
 - The container build workflows bake `RELEASE_VERSION`, `GIT_REF`, and `GIT_SHA` into the image so runtime metadata reflects the actual GitHub release or PR build.
+
+For a release such as `v0.3.1`, the published tags are expected to include:
+
+- `ghcr.io/<owner>/solar-scraper:v0.3.1`
+- `ghcr.io/<owner>/solar-scraper:0.3.1`
+- `ghcr.io/<owner>/solar-scraper:0.3`
+- `ghcr.io/<owner>/solar-scraper:0`
+- `ghcr.io/<owner>/solar-scraper:latest`
 
 ### Release Procedure
 
