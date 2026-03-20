@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This repository uses GitHub Releases and Release Please to manage release notes and version history.
 
+## [0.4.0](https://github.com/djryanj/solar-scraper/compare/v0.4.1...v0.4.0) (2026-03-20)
+
+
+### Miscellaneous Chores
+
+* release 0.4.0 ([8ae833e](https://github.com/djryanj/solar-scraper/commit/8ae833e0b199efc565af795657b8f24d77698be6))
+* release 0.4.0 ([881e796](https://github.com/djryanj/solar-scraper/commit/881e796fad746094b4bf1bbdaf5bee501097823a))
+
 ## [0.4.0](https://github.com/djryanj/solar-scraper/compare/v0.4.0...v0.4.0) (2026-03-20)
 
 
