@@ -1,0 +1,76 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        ":dependencyDashboard",
+        ":semanticCommits",
+        ":separateMajorReleases"
+    ],
+    "timezone": "Etc/UTC",
+    "labels": [
+        "dependencies"
+    ],
+    "rangeStrategy": "bump",
+    "prConcurrentLimit": 5,
+    "prHourlyLimit": 2,
+    "lockFileMaintenance": {
+        "enabled": true,
+        "schedule": [
+            "before 6am on monday"
+        ]
+    },
+    "packageRules": [
+        {
+            "matchManagers": [
+                "npm"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "groupName": "npm dependencies"
+        },
+        {
+            "matchManagers": [
+                "github-actions"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "groupName": "github actions"
+        },
+        {
+            "matchManagers": [
+                "dockerfile"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "groupName": "container base images"
+        },
+        {
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "labels": [
+                "dependencies",
+                "major-update"
+            ]
+        }
+    ],
+    "vulnerabilityAlerts": {
+        "enabled": true,
+        "labels": [
+            "dependencies",
+            "security"
+        ]
+    }
+}

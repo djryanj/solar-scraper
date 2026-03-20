@@ -1,15 +1,14 @@
-
 # APSolar ECU Prometheus Exporter
 
 A containerized data scraper for APSolar ECU's written in node.js by [Ryan Jacobs](https://github.com/djryanj). It has the following features:
 
-* Prometheus metrics exporter
+- Prometheus metrics exporter
 
-* JSON data endpoint
+- JSON data endpoint
 
-* MQTT data export
+- MQTT data export
 
-* Data export to MQTT that is follows the topic format required for auto-discovery in [Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/).
+- Data export to MQTT that is follows the topic format required for auto-discovery in [Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/).
 
 # About
 
@@ -23,9 +22,96 @@ At this time, providing support for InfluxDB is being considered for a future re
 
 # Running
 
+For local development, use Node.js 24 or newer.
+
 You will need to define at least the environment variable ECUHOST in order to run the image and ensure that port 3000 is forwarded somehow. Further configuration information is available below.
 
-``docker run --env ECUHOST=<your-ecu-host-or-ip> -p 3000:3000 djryanj/solar-scraper:latest``
+`docker run --env ECUHOST=<your-ecu-host-or-ip> -p 3000:3000 djryanj/solar-scraper:latest`
+
+## Dev Container
+
+This repo includes a VS Code devcontainer in [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json).
+
+Use VS Code's Reopen in Container action to start a Node 24 development environment with port 3000 forwarded. The container runs `npm install` after creation.
+
+Once the container is ready, start the app with `npm run dev`.
+
+Run the automated test suite with `npm test`.
+
+Print a terminal coverage summary with `npm run test:coverage`.
+
+Use `npm run test:watch` while iterating locally.
+
+## Repository Files
+
+- [CHANGELOG.md](CHANGELOG.md) tracks notable releases and points to Release Please as the long-term source of generated release history.
+- [CONTRIBUTING.md](CONTRIBUTING.md) describes contribution expectations and validation commands.
+- [SECURITY.md](SECURITY.md) explains how to report security issues.
+- [AI_NOTICE.md](AI_NOTICE.md) describes expectations for AI-assisted changes.
+- [.github/CODEOWNERS](.github/CODEOWNERS) defines repository ownership for review routing.
+- [renovate.json](renovate.json) configures automated dependency updates for npm, GitHub Actions, and container base images.
+
+## GitHub Automation
+
+This repo now includes GitHub Actions workflows for CI, PR containers, release creation, and release container publishing.
+
+### Continuous Integration
+
+- `CI` runs on pull requests and pushes to `main`.
+- It installs dependencies with `npm ci`, runs `npm run check`, and runs the test suite with coverage.
+
+### Pull Request Containers
+
+- `PR Container` builds a multi-architecture image for non-draft pull requests.
+- For pull requests opened from branches in the same repository, it pushes the image to GitHub Container Registry as `ghcr.io/<owner>/solar-scraper:pr-<number>` and `ghcr.io/<owner>/solar-scraper:pr-<number>-<sha>`.
+- For pull requests opened from forks, it still performs the build but skips the push for safety.
+- `Cleanup PR Container` deletes the PR container versions after the pull request is merged.
+
+### Releases
+
+- `Release Please` runs on pushes to `main` and maintains a release PR plus GitHub Releases.
+- Releases are driven by Conventional Commits so the generated changelog and version bump are correct.
+- When a GitHub Release is published, `Release Container` builds and pushes the final multi-architecture image to GitHub Container Registry.
+- Release container tags include the exact version, the `major.minor` line, the `major` line, and `latest`.
+- The container build workflows bake `RELEASE_VERSION`, `GIT_REF`, and `GIT_SHA` into the image so runtime metadata reflects the actual GitHub release or PR build.
+
+### Release Procedure
+
+Preferred path:
+Use this for normal releases. It keeps `package.json`, `package-lock.json`, the Release Please manifest, the GitHub Release, and the container tags aligned automatically.
+
+1. Merge feature and fix branches into `main` using Conventional Commit messages.
+2. Wait for the `Release Please` workflow to open or update the release PR.
+3. Review the release PR. It will include the version bump and changelog updates.
+4. Merge the release PR into `main`.
+5. Release Please will create and publish the GitHub Release.
+6. The `Release Container` workflow will build and publish the multi-arch image for that release.
+
+Manual fallback:
+Use this only when you need to force a specific version bump yourself.
+
+1. Choose the next version:
+  - `npm run release:bump:patch`
+  - `npm run release:bump:minor`
+  - `npm run release:bump:major`
+2. Review the resulting changes in `package.json`, `package-lock.json`, and `.release-please-manifest.json`.
+3. Commit the version bump and merge it to `main`.
+4. From a clean `main` checkout with GitHub CLI authenticated, create the tag and GitHub release draft:
+   - `npm run release:draft`
+   - or `npm run release:draft -- v0.4.0` to force a specific tag name
+5. Publish the GitHub release draft.
+6. The `Release Container` workflow will publish the final container image for that release tag.
+
+Notes:
+- The normal Release Please flow is the source of truth and is the recommended release path.
+- The manual bump commands only update repository version files; they do not create git tags or GitHub Releases for you.
+- `npm run release:draft` requires a clean working tree, the `main` branch, `git`, and the GitHub CLI (`gh`) authenticated against the target repository.
+- If you use the manual fallback, keep the GitHub Release tag format consistent so the release container workflow produces the tags you expect.
+
+### Repository Setup Notes
+
+- GitHub Actions package permissions must be enabled so workflows can publish to GitHub Container Registry.
+- If package deletion via the default `GITHUB_TOKEN` is restricted in your repository or organization, add a `GHCR_CLEANUP_TOKEN` repository secret with permission to delete package versions.
 
 ## Configuration
 
@@ -35,153 +121,156 @@ Configuration is done via environment variables only.
 
 The following environment variables directly affect the operation of the scraper. Only one is required to be set; the rest are optional depending on what features you want to do (and the configuration required for them). There are defaults for all.
 
-| Variable | Required | Description | Default |
-|--|--|--|--|
-|``ECUHOST`` | Yes| IP or hostname of the APSolar ECU to scrape. | 192.168.1.1 |
-|``PORT`` | No |The port that the container listens on (internally). Be sure to change the port Docker forwards if you change this. | 3000
-|``USE_MQTT`` | No | Set to **true** if you want to use generic MQTT. See the [MQTT](#mqtt) section for more information. **Be sure to also set MQTT_HOST**!! | False
-| ``USE_HA_MQTT`` | No | Set to **true** if you want to use Home Assistant to auto-discover solar information via MQTT. Note that USE_MQTT and USE_HA_MQTT are independent; you do not need to set USE_MQTT to true if USE_HA_MQTT is true. **Be sure to also set MQTT_HOST**!! |  False
-| ``MQTT_HOST`` | No | Set to the IP address or DNS name of your MQTT server. Both USE_MQTT and USE_HA_MQTT use the same host. **IMPORTANT!** The default host could potentially expose information to a public server you don't want exposed. Be sure to set this if you set USE_MQTT or USE_HA_MQTT to true! **NOTE:** At this time, providing a self-signed certificate file for TLS communications is not supported. If your MQTT server uses PKI from a well-known certificate authority such as letsencrypt (be sure that the WHOLE chain is sent), it should work. At this time, self-signed cert behaviour is untested. | test.mosquitto.org
-|``MQTT_PORT`` | No | The TCP port on which to connect to the MQTT server. | 1883
-|``MQTT_USERNAME`` | No | If you need to supply a username for your MQTT server, set it here. | null/unset (works for anonymous servers)
-| ``MQTT_PASSWORD`` | No | If you need to supply a password for your MQTT server, set it here. **IMPORTANT!** This will be visible in the logs and if you get container information from the Docker host. You could provide this via Docker secrets. | null/unset (works for anonymous servers)
-| ``MQTT_TOPIC`` | No | Base topic for standard MQTT data. See [MQTT](#mqtt) section for more information. | home/solar
-|``HA_MQTT_TOPIC`` | No | Base topic for Home Assistant auto-discovery. This must match the base topic in your Home Assistant configuration.yaml. **Note:** this can only be a single label (e.g. ``homeassistant`` or ``hass``) or auto-discovery will fail.| homeassistant
-
+| Variable             | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Default                                  |
+| -------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `ECUHOST`            | Yes      | IP or hostname of the APSolar ECU to scrape.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 192.168.1.1                              |
+| `PORT`               | No       | The port that the container listens on (internally). Be sure to change the port Docker forwards if you change this.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 3000                                     |
+| `SCRAPE_INTERVAL_MS` | No       | Poll interval for scraping the ECU and publishing MQTT state.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 300000                                   |
+| `REQUEST_TIMEOUT_MS` | No       | HTTP timeout for ECU page fetches in milliseconds.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 15000                                    |
+| `USE_MQTT`           | No       | Set to **true** if you want to use generic MQTT. See the [MQTT](#mqtt) section for more information. **Be sure to also set MQTT_HOST**!!                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | False                                    |
+| `USE_HA_MQTT`        | No       | Set to **true** if you want to use Home Assistant to auto-discover solar information via MQTT. Note that USE_MQTT and USE_HA_MQTT are independent; you do not need to set USE_MQTT to true if USE_HA_MQTT is true. **Be sure to also set MQTT_HOST**!!                                                                                                                                                                                                                                                                                                                                                   | False                                    |
+| `MQTT_HOST`          | No       | Set to the IP address or DNS name of your MQTT server. Both USE_MQTT and USE_HA_MQTT use the same host. **IMPORTANT!** The default host could potentially expose information to a public server you don't want exposed. Be sure to set this if you set USE_MQTT or USE_HA_MQTT to true! **NOTE:** At this time, providing a self-signed certificate file for TLS communications is not supported. If your MQTT server uses PKI from a well-known certificate authority such as letsencrypt (be sure that the WHOLE chain is sent), it should work. At this time, self-signed cert behaviour is untested. | test.mosquitto.org                       |
+| `MQTT_PORT`          | No       | The TCP port on which to connect to the MQTT server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 1883                                     |
+| `MQTT_USERNAME`      | No       | If you need to supply a username for your MQTT server, set it here.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | null/unset (works for anonymous servers) |
+| `MQTT_PASSWORD`      | No       | If you need to supply a password for your MQTT server, set it here. **IMPORTANT!** This will be visible in the logs and if you get container information from the Docker host. You could provide this via Docker secrets.                                                                                                                                                                                                                                                                                                                                                                                | null/unset (works for anonymous servers) |
+| `MQTT_TOPIC`         | No       | Base topic for standard MQTT data. See [MQTT](#mqtt) section for more information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | home/solar                               |
+| `HA_MQTT_TOPIC`      | No       | Base topic for Home Assistant auto-discovery. This must match the base topic in your Home Assistant configuration.yaml. **Note:** this can only be a single label (e.g. `homeassistant` or `hass`) or auto-discovery will fail.                                                                                                                                                                                                                                                                                                                                                                          | homeassistant                            |
 
 ### Informational Environment Variables
 
 The following environment variables provide information into the scraper but do not affect operation beyond the cosmetic (they are exported with metrics and are visible on the browseable home page). None of these are required.
 
-| Variable | Description | Default |
-|--|--|--|
-|``SITENAME`` | A friendly site name. Mostly visible on the home page of the scraper but also exported with metrics.| Your House!
-| ``BUILDID`` | The BUILDID is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the git hash (this was mostly used during development; a future release may hide this for production builds). The BUILDID can be read from the local .git directory, but that is not present in the Docker container. |missingBuildId (when nothing is passed to Docker or the .git directory is not present locally); otherwise the 7-character git hash of the 
-| ``BUILDNUMBER`` | The BUILDNUMBER is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the automated build number, e.g. 20190910.1. | local
-| ``SOURCEBRANCHNAME`` | The SOURCEBRANCHNAME is intended to be passed in from an automation pipeline such as Azure DevOps and should be equivalent to the git branch that the container was built from, e.g. master. | local
+| Variable           | Description                                                                                                                                                                                                                                                                                                                                | Default                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITENAME`         | A friendly site name. Mostly visible on the home page of the scraper but also exported with metrics.                                                                                                                                                                                                                                       | Your House!                                                                                                                               |
+| `GIT_SHA`          | Short or full git commit SHA to expose in the app, metrics, and MQTT metadata. The GitHub container workflows set this automatically.                                                                                                                                                                                                                                                                                                                                | local git short SHA or `missingGitSha`                                                                                                   |
+| `GIT_REF`          | Git ref associated with the running build, such as a branch name, tag name, or PR identifier. The GitHub container workflows set this automatically.                                                                                                                                                                                                                                                                                                                  | `NODE_ENV` or `local`                                                                                                                     |
+| `RELEASE_VERSION`  | Release identifier to expose in the UI and metadata. For release builds this should match the GitHub Release tag.                                                                                                                                                                                                                                                                                                                                                      | `package.json` version                                                                                                                    |
 
 ## Network
 
-Exposes port tcp/3000 by default. Change the ``PORT`` environment variable if you want to change it. Leverage something like [jwilder/nginx-proxy](https://hub.docker.com/r/jwilder/nginx-proxy/) to automatically forward a hostname from the Docker host's port 80 or 443 to this container.  
+Exposes port tcp/3000 by default. Change the `PORT` environment variable if you want to change it. Leverage something like [jwilder/nginx-proxy](https://hub.docker.com/r/jwilder/nginx-proxy/) to automatically forward a hostname from the Docker host's port 80 or 443 to this container.
 
 # Endpoints
 
 ## Default
-There is a default cosmetic endpoint at ``/`` (e.g. http://docker-host:3000/) that shows all data in a human-readable form. 
+
+There is a default cosmetic endpoint at `/` (e.g. http://docker-host:3000/) that shows all data in a human-readable form.
 
 ## Prometheus
-Prometheus expects an endpoint at ``/metrics``, which is where it is. In addition to the custom metrics provided by this scraper, there are node.js-specific metrics exported as well that are not presented here. You can browse the endpoint if you wish.
 
-All metrics are prefixed by ``solar_``. The list of metrics is below (including the prefix for clarity).
+Prometheus expects an endpoint at `/metrics`, which is where it is. In addition to the custom metrics provided by this scraper, there are node.js-specific metrics exported as well that are not presented here. You can browse the endpoint if you wish.
+
+All metrics are prefixed by `solar_`. The list of metrics is below (including the prefix for clarity).
 
 ### Metrics
 
 #### Generic Metrics
 
-|Metric|Description  |
-|--|--|
-|``solar_total_generated``| Total solar power generated over the lifetime of the array in kilowatt hours (kWh).|
-|``solar_daily_generated``| Total solar power generated today in kilowatt hours (kWh).|
-|``solar_current_total_power``| Current solar power output in watts (W).|
-|``solar_carbon_offset``| Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array.|
-|``solar_trees_planted``| Estimated carbon offset by the equivalent number of trees that have been planted over the lifetime of the solar array.|
-|``solar_gallons_offset``| Estimated carbon offset in gallons of gasoline saved over the lifetime of the solar array.|
-|``solar_scraper_version_info{version="<version>",hostname="<hostname>",buildId="<buildId>",ecuHost="<ecu-host>"}``| Version and other information. |
+| Metric                                                                                                           | Description                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `solar_total_generated`                                                                                          | Total solar power generated over the lifetime of the array in kilowatt hours (kWh).                                    |
+| `solar_daily_generated`                                                                                          | Total solar power generated today in kilowatt hours (kWh).                                                             |
+| `solar_current_total_power`                                                                                      | Current solar power output in watts (W).                                                                               |
+| `solar_carbon_offset`                                                                                            | Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array.                                       |
+| `solar_trees_planted`                                                                                            | Estimated carbon offset by the equivalent number of trees that have been planted over the lifetime of the solar array. |
+| `solar_gallons_offset`                                                                                           | Estimated carbon offset in gallons of gasoline saved over the lifetime of the solar array.                             |
+| `solar_scraper_info{version="<version>",hostname="<hostname>",gitSha="<gitSha>",ecuHost="<ecu-host>"}` | Version and other information.                                                                                         |
 
 #### Per-Panel Metrics
 
 The following metrics will be one per panel in your array, labelled by inverter ID (see the Administration->ID Management or the Real Time Data links on the ECU to see what inverters are configured). Inverters that have multiple panels connected (e.g. the YC500/600 or YC1000) will have an -A, -B etc. appended to the end.
 
-|Metric|Description  |
-|--|--|
-|``solar_panel_power{inverterId=<inverterId>}``| Current power output of the panel in watts (W).|
-|``solar_panel_grid_frequency{inverterId=<inverterId>}``| Current grid frequency measured by the panel in hertz (Hz).|
-|``solar_inverter_temperature{inverterId=<inverterId>}``| Current inverter temperature in °C.|
-|``solar_inverter_grid_voltage{inverterId=<inverterId>}``| Current grid voltage output by the inverter in volts A/C (V).|
+| Metric                                                 | Description                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------- |
+| `solar_panel_power{inverterId=<inverterId>}`           | Current power output of the panel in watts (W).               |
+| `solar_panel_grid_frequency{inverterId=<inverterId>}`  | Current grid frequency measured by the panel in hertz (Hz).   |
+| `solar_inverter_temperature{inverterId=<inverterId>}`  | Current inverter temperature in °C.                           |
+| `solar_inverter_grid_voltage{inverterId=<inverterId>}` | Current grid voltage output by the inverter in volts A/C (V). |
 
 ## MQTT
 
-Although only one MQTT host is allowed, you can output 2 kinds of MQTT data. One is more generically formatted and published when ``USE_MQTT`` is ``true``; the other is formatted for use by the [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/), enabled by setting the ``USE_HA_MQTT`` environment variable to ``true``.
+Although only one MQTT host is allowed, you can output 2 kinds of MQTT data. One is more generically formatted and published when `USE_MQTT` is `true`; the other is formatted for use by the [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/), enabled by setting the `USE_HA_MQTT` environment variable to `true`.
 
-The generically-formatted data could be suitable for consumption into Prometheus through something like  [MQTTGateway for Prometheus](https://github.com/inuits/mqttgateway). This would achieve a decoupling of the scraper and Prometheus, which could be useful in large systems with many ECU's (though I doubt such a thing would need this software ;) ).
+The generically-formatted data could be suitable for consumption into Prometheus through something like [MQTTGateway for Prometheus](https://github.com/inuits/mqttgateway). This would achieve a decoupling of the scraper and Prometheus, which could be useful in large systems with many ECU's (though I doubt such a thing would need this software ;) ).
 
-The ``MQTT_TOPIC`` and ``HA_MQTT_TOPIC`` environment variables, set to ``home/solar`` and ``homeassistant`` respectively by default, are the base topics upon which the rest of the topic labels are built.
+The `MQTT_TOPIC` and `HA_MQTT_TOPIC` environment variables, set to `home/solar` and `homeassistant` respectively by default, are the base topics upon which the rest of the topic labels are built.
 
-**IMPORTANT:** Do not use more than a single label (e.g. ``homeassistant`` or ``hass``) for the Home Assistant auto-discovery base topic or auto-discovery will fail.
+**IMPORTANT:** Do not use more than a single label (e.g. `homeassistant` or `hass`) for the Home Assistant auto-discovery base topic or auto-discovery will fail.
 
 ### Metrics - Generic Topic
 
-The following metrics are exported to the ``MQTT_TOPIC`` (e.g. ``home/solar``):
+The following metrics are exported to the `MQTT_TOPIC` (e.g. `home/solar`):
 
 #### Generic Metrics
 
-|Metric|Description  |
-|--|--|
-|``/dailyGen``| Total solar power generated today in kilowatt hours (kWh).|
-|``/totalGen``| Total solar power generated over the lifetime of the array in kilowatt hours (kWh).|
-|``/currentSystemPower``|Current solar power output in watts (W).|
-|``/treesPlanted``| Estimated carbon offset by the equivalent number of trees that have been planted over the lifetime of the solar array.|
-|``/gallonsSaved``| Estimated carbon offset in gallons of gasoline saved over the lifetime of the solar array.|
-|``/carbonOffset``| Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array.|
-|``/scraper/version``| Running version number of the scraper software.|
-|``/scraper/hostname``| Hostname on which the software is running.|
-|``/scraper/azureBuildNumber``| Pipeline build number.|
-|``/scraper/ecuHost``| Configured ECU IP address or hostname.|
+| Metric                      | Description                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `/dailyGen`                 | Total solar power generated today in kilowatt hours (kWh).                                                             |
+| `/totalGen`                 | Total solar power generated over the lifetime of the array in kilowatt hours (kWh).                                    |
+| `/currentSystemPower`       | Current solar power output in watts (W).                                                                               |
+| `/treesPlanted`             | Estimated carbon offset by the equivalent number of trees that have been planted over the lifetime of the solar array. |
+| `/gallonsSaved`             | Estimated carbon offset in gallons of gasoline saved over the lifetime of the solar array.                             |
+| `/carbonOffset`             | Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array.                                       |
+| `/scraper/version`          | Running version number of the scraper software.                                                                        |
+| `/scraper/hostname`         | Hostname on which the software is running.                                                                             |
+| `/scraper/releaseVersion`   | Release identifier of the running image or local build.                                                                |
+| `/scraper/gitSha`           | Short git SHA of the running image or local build.                                                                     |
+| `/scraper/ecuHost`          | Configured ECU IP address or hostname.                                                                                 |
 
 #### Per-Panel Metrics
 
 The following topics will be one per panel in your array, labelled by inverter ID (see the Administration->ID Management or the Real Time Data links on the ECU to see what inverters are configured). Inverters that have multiple panels connected (e.g. the YC500/600 or YC1000) will have an -A, -B etc. appended to the end.
 
-|Metric|Description  |
-|--|--|
-|``/panels/<inverterId>/currentPower``| Current power output of the panel in watts (W).|
-|``/panels/<inverterId>/gridVoltage``| Current grid voltage output by the inverter in volts A/C (V).|
-|``/panels/<inverterId>/temperature``|Current inverter temperature in °C.|
-|``/panels/<inverterId>/gridFrequency``|Current grid frequency measured by the panel in hertz (Hz).|
-|``/ping``|Unix-timestamp for the last published MQTT data.|
+| Metric                               | Description                                                   |
+| ------------------------------------ | ------------------------------------------------------------- |
+| `/panels/<inverterId>/currentPower`  | Current power output of the panel in watts (W).               |
+| `/panels/<inverterId>/gridVoltage`   | Current grid voltage output by the inverter in volts A/C (V). |
+| `/panels/<inverterId>/temperature`   | Current inverter temperature in °C.                           |
+| `/panels/<inverterId>/gridFrequency` | Current grid frequency measured by the panel in hertz (Hz).   |
+| `/ping`                              | Unix-timestamp for the last published MQTT data.              |
 
 ### Metrics - Home Assistant Topic
 
-The following metrics are exported to the ``HA_MQTT_TOPIC`` (e.g. ``homeassistant``).
-All of these will be discovered as ``sensor`` within Home Assistant, due to the topics' full format e.g. ``homeassistant/sensor/totalGen/state``. For more information, see [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/). Therefore, all of the below are relative to ``HA_MQTT_TOPIC/sensor``.
+The following metrics are exported to the `HA_MQTT_TOPIC` (e.g. `homeassistant`).
+All of these will be discovered as `sensor` within Home Assistant, due to the topics' full format e.g. `homeassistant/sensor/totalGen/state`. For more information, see [MQTT auto-discovery function in Home Assistant](https://www.home-assistant.io/docs/mqtt/discovery/). Therefore, all of the below are relative to `HA_MQTT_TOPIC/sensor`.
 
-**Note:** For brevity, the ``/state`` suffix for each topic is not added on to the topic name (this is usually not seen in Home Assistant anyway). ``/config`` topics are not presented.
+**Note:** For brevity, the `/state` suffix for each topic is not added on to the topic name (this is usually not seen in Home Assistant anyway). `/config` topics are not presented.
 
 #### General Topics
 
-|Topic|Data|Home Assistant Sensor Name|
-|--|--|--|
-|``/carbonOffset/carbon``| Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array. | ``sensor.carbon_offset_kg_of_co2``|
-|``/carbonOffset/trees``| Estimated carbon offset by the equivalent number of trees that have been planted over the lifetime of the solar array. | ``sensor.carbon_offset_trees_planted``|
-|``/carbonOffset/gallons``| Estimated carbon offset in gallons of gasoline saved over the lifetime of the solar array. | ``sensor.carbon_offset_gallons_of_gasoline_saved``|
-|``/dailyGen``| Total solar power generated today in kilowatt hours (kWh). | ``sensor.power_generated_today``|
-|``/currGen``| Current solar power output in watts (W). | ``sensor.current_solar_power_output``|
-|``/totalGen``| Total solar power generated over the lifetime of the array in kilowatt hours (kWh). | ``sensor.lifetime_solar_power_generated``|
+| Topic                   | Data                                                                                                                   | Home Assistant Sensor Name                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `/carbonOffset/carbon`  | Estimated carbon offset in kg of CO2 saved over the lifetime of the solar array.                                       | `sensor.carbon_offset_kg_of_co2`                 |
+| `/carbonOffset/trees`   | Estimated carbon offset by the equivalent number of trees that have been planted over the lifetime of the solar array. | `sensor.carbon_offset_trees_planted`             |
+| `/carbonOffset/gallons` | Estimated carbon offset in gallons of gasoline saved over the lifetime of the solar array.                             | `sensor.carbon_offset_gallons_of_gasoline_saved` |
+| `/dailyGen`             | Total solar power generated today in kilowatt hours (kWh).                                                             | `sensor.power_generated_today`                   |
+| `/currGen`              | Current solar power output in watts (W).                                                                               | `sensor.current_solar_power_output`              |
+| `/totalGen`             | Total solar power generated over the lifetime of the array in kilowatt hours (kWh).                                    | `sensor.lifetime_solar_power_generated`          |
 
 #### Per-Panel Topics
 
-Each of the below metrics will exist one per panel/inverter ID.  The panel # for sensors should be the same every run, unless additional inverters are added. 
+Each of the below metrics will exist one per panel/inverter ID. The panel # for sensors should be the same every run, unless additional inverters are added.
 
-|Topic|Data|Home Assistant Sensor Name|
-|--|--|--|
-|``/solar_panel_<inverterID>/power``| Current power output of the panel in watts (V). | ``sensor.solar_panel_<#>_power``|
-|``/solar_panel_<inverterID>/temperature``| Current inverter temperature in °C. | ``sensor.solar_panel_<#>_temperature``|
-|``/solar_panel_<inverterID>/frequency``| Current grid frequency measured by the panel in hertz (Hz). | ``sensor.solar_panel_<#>_frequency``|
-|``/solar_panel_<inverterID>/voltage``| Current grid voltage output by the inverter in volts A/C (V). | ``sensor.solar_panel_<#>_voltage``|
+| Topic                                   | Data                                                          | Home Assistant Sensor Name           |
+| --------------------------------------- | ------------------------------------------------------------- | ------------------------------------ |
+| `/solar_panel_<inverterID>/power`       | Current power output of the panel in watts (V).               | `sensor.solar_panel_<#>_power`       |
+| `/solar_panel_<inverterID>/temperature` | Current inverter temperature in °C.                           | `sensor.solar_panel_<#>_temperature` |
+| `/solar_panel_<inverterID>/frequency`   | Current grid frequency measured by the panel in hertz (Hz).   | `sensor.solar_panel_<#>_frequency`   |
+| `/solar_panel_<inverterID>/voltage`     | Current grid voltage output by the inverter in volts A/C (V). | `sensor.solar_panel_<#>_voltage`     |
 
 The following additional topics are published:
 
-* A JSON-formatted string of all data is published to ``HA_MQTT_TOPIC/json`` (e.g not at ``HA_MQTT_TOPIC/sensor/json``. Unsure at this time how useful that is, but Home Assistant can read JSON-formatted MQTT topics.
-* ``MQTT_TOPIC/ping`` is always published if either ``USE_MQTT`` or ``USE_HA_MQTT`` is ``true``
-
+- A JSON-formatted string of all data is published to `HA_MQTT_TOPIC/json` (e.g not at `HA_MQTT_TOPIC/sensor/json`. Unsure at this time how useful that is, but Home Assistant can read JSON-formatted MQTT topics.
+- `MQTT_TOPIC/ping` is always published if either `USE_MQTT` or `USE_HA_MQTT` is `true`
 
 **NOTE:** Scraper versioning info is not currently published to a Home Assistant topic. This is a decision I made because at this time, I can't see a reason to include it. It's mostly useless information for most users, more so for Home Assistant users because of the way the data is surfaced and likely to be used in Home Assistant, and if it's desired it's available on the other topic for manual addition anyway.
 
 ## JSON/API
 
-The scraper will return a JSON-formatted string by browsing ``/json``, e.g. http://docker-host:3000/json. This is useful for consumption into a wide variety of downstream things.
+The scraper will return a JSON-formatted string by browsing `/json`, e.g. http://docker-host:3000/json. This is useful for consumption into a wide variety of downstream things.
 
-There is no other API available. 
+There is no other API available.
 
 # Prometheus Config
 
@@ -194,4 +283,5 @@ Here is a sample config block for Prometheus:
   - targets:
     - <hostname>
 ```
+
 ## CANARY

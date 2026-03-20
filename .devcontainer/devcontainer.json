@@ -1,0 +1,22 @@
+{
+  "name": "solar-scraper",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "node",
+  "containerEnv": {
+    "NODE_ENV": "development",
+    "PORT": "3000"
+  },
+  "forwardPorts": [3000],
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": ["ms-azuretools.vscode-docker"]
+    }
+  }
+}
