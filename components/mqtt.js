@@ -1,220 +1,377 @@
-/**
- * Implements MQTT export functionality of scraper metrics
- */
+const mqtt = require("mqtt");
+const defaultVars = require("./vars");
 
-var mqtt = require('async-mqtt')
-const getResults = require("./scraper");
-const vars = require("./vars");
-
-const mqttConnectString = vars.mqttHost + ":" + vars.mqttPort;
-const baseTopic = vars.mqttTopic;
-const haBaseTopic = vars.haMqttTopic;
-
-// build the configuration payloads for HomeAssistant discovery topics
-const dailyGenConfig = {
-    name: "Solar Power Generated Today",
-    unit_of_meas: "kWh",
-    stat_t: haBaseTopic + "/sensor/dailyGen/state",
-    icon: "mdi:solar-power"
+function comparePanels(a, b) {
+  return a.inverterID.localeCompare(b.inverterID, undefined, {
+    sensitivity: "base",
+  });
 }
 
-const totalGenConfig = {
-    name: "Lifetime Solar Power Generated",
-    unit_of_meas: "kWh",
-    stat_t: haBaseTopic + "/sensor/totalGen/state",
-    icon: "mdi:solar-power"
+function publishAsync(client, topic, payload, options = {}) {
+  return new Promise((resolve, reject) => {
+    client.publish(topic, payload, options, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
 }
 
-const currGenConfig = {
-    name: "Current Solar Power Output",
-    unit_of_meas: "W",
-    stat_t: haBaseTopic + "/sensor/currGen/state",
-    icon: "mdi:solar-power",
-    dev_cla: "power"
+function getPanelDiscoveryConfigs(panelTopic, panelName) {
+  return [
+    {
+      topic: `${panelTopic}/power/config`,
+      payload: {
+        name: `${panelName} Power`,
+        device_class: "power",
+        unit_of_meas: "W",
+        stat_t: `${panelTopic}/state`,
+        value_template: "{{ value_json.power }}",
+        icon: "mdi:solar-panel",
+      },
+    },
+    {
+      topic: `${panelTopic}/temperature/config`,
+      payload: {
+        name: `${panelName} Temperature`,
+        device_class: "temperature",
+        unit_of_meas: "°C",
+        stat_t: `${panelTopic}/state`,
+        value_template: "{{ value_json.temperature }}",
+        icon: "mdi:thermometer",
+      },
+    },
+    {
+      topic: `${panelTopic}/frequency/config`,
+      payload: {
+        name: `${panelName} Frequency`,
+        unit_of_meas: "Hz",
+        stat_t: `${panelTopic}/state`,
+        value_template: "{{ value_json.frequency }}",
+        icon: "mdi:waves",
+      },
+    },
+    {
+      topic: `${panelTopic}/voltage/config`,
+      payload: {
+        name: `${panelName} Voltage`,
+        unit_of_meas: "V",
+        stat_t: `${panelTopic}/state`,
+        value_template: "{{ value_json.voltage }}",
+        icon: "mdi:power-socket-us",
+      },
+    },
+  ];
 }
 
-const treesConfig = {
-    name: "Carbon Offset: Trees Planted",
-    unit_of_meas: "trees",
-    stat_t: haBaseTopic + "/sensor/carbonOffset/state",
-    icon: "mdi:pine-tree",
-    value_template: "{{ value_json.trees }}"
+function getHomeAssistantConfigs(snapshot, config = defaultVars) {
+  const haBaseTopic = config.haMqttTopic;
+
+  return [
+    {
+      topic: `${haBaseTopic}/sensor/dailyGen/config`,
+      payload: {
+        name: "Solar Power Generated Today",
+        unit_of_meas: "kWh",
+        stat_t: `${haBaseTopic}/sensor/dailyGen/state`,
+        icon: "mdi:solar-power",
+      },
+    },
+    {
+      topic: `${haBaseTopic}/sensor/totalGen/config`,
+      payload: {
+        name: "Lifetime Solar Power Generated",
+        unit_of_meas: "kWh",
+        stat_t: `${haBaseTopic}/sensor/totalGen/state`,
+        icon: "mdi:solar-power",
+      },
+    },
+    {
+      topic: `${haBaseTopic}/sensor/currGen/config`,
+      payload: {
+        name: "Current Solar Power Output",
+        unit_of_meas: "W",
+        stat_t: `${haBaseTopic}/sensor/currGen/state`,
+        device_class: "power",
+        icon: "mdi:solar-power",
+      },
+    },
+    {
+      topic: `${haBaseTopic}/sensor/carbonOffset/trees/config`,
+      payload: {
+        name: "Carbon Offset: Trees Planted",
+        unit_of_meas: "trees",
+        stat_t: `${haBaseTopic}/sensor/carbonOffset/state`,
+        value_template: "{{ value_json.trees }}",
+        icon: "mdi:pine-tree",
+      },
+    },
+    {
+      topic: `${haBaseTopic}/sensor/carbonOffset/gallons/config`,
+      payload: {
+        name: "Carbon Offset: Gallons of Gasoline Saved",
+        unit_of_meas: "gal",
+        stat_t: `${haBaseTopic}/sensor/carbonOffset/state`,
+        value_template: "{{ value_json.gallons }}",
+        icon: "mdi:gas-station",
+      },
+    },
+    {
+      topic: `${haBaseTopic}/sensor/carbonOffset/carbon/config`,
+      payload: {
+        name: "Carbon Offset: kg of CO2",
+        unit_of_meas: "kg",
+        stat_t: `${haBaseTopic}/sensor/carbonOffset/state`,
+        value_template: "{{ value_json.carbon }}",
+        icon: "mdi:periodic-table-co2",
+      },
+    },
+    ...snapshot.data.flatMap((panel, index) => {
+      const panelTopic = `${haBaseTopic}/sensor/solar_panel_${panel.inverterID}`;
+      return getPanelDiscoveryConfigs(panelTopic, `Solar Panel ${index + 1}`);
+    }),
+  ];
 }
 
-const gallonsConfig = {
-    name: "Carbon Offset: Gallons of Gasoline Saved",
-    unit_of_meas: "gal",
-    stat_t: haBaseTopic + "/sensor/carbonOffset/state",
-    icon: "mdi:gas-station",
-    value_template: "{{ value_json.gallons }}"
+function getPublishJobs(snapshot) {
+  return getPublishJobsForConfig(snapshot, defaultVars);
 }
 
-const carbonConfig = {
-    name: "Carbon Offset: kg of CO2",
-    unit_of_meas: "kg",
-    stat_t: haBaseTopic + "/sensor/carbonOffset/state",
-    icon: "mdi:periodic-table-co2",
-    value_template: "{{ value_json.carbon }}"
+function getPublishJobsForConfig(snapshot, config) {
+  const baseTopic = config.mqttTopic;
+  const haBaseTopic = config.haMqttTopic;
+  const sortedPanels = [...snapshot.data].sort(comparePanels);
+  const jobs = [];
+
+  if (config.useMqtt) {
+    jobs.push(
+      {
+        topic: `${baseTopic}/dailyGen`,
+        payload: String(snapshot.dailyGen),
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/totalGen`,
+        payload: String(snapshot.totalGen),
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/currentSystemPower`,
+        payload: String(snapshot.currentSystemPower),
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/treesPlanted`,
+        payload: String(snapshot.treesPlanted),
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/gallonsSaved`,
+        payload: String(snapshot.gallonsSaved),
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/carbonOffset`,
+        payload: String(snapshot.carbonOffset),
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/scraper/version`,
+        payload: config.vers,
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/scraper/hostname`,
+        payload: config.hostname,
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/scraper/releaseVersion`,
+        payload: config.releaseVersion,
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/scraper/gitSha`,
+        payload: config.gitSha,
+        retain: true,
+      },
+      {
+        topic: `${baseTopic}/scraper/ecuHost`,
+        payload: config.ecuHost,
+        retain: true,
+      },
+    );
+
+    sortedPanels.forEach((panel) => {
+      const panelTopic = `${baseTopic}/panels/${panel.inverterID}`;
+      jobs.push(
+        {
+          topic: `${panelTopic}/currentPower`,
+          payload: String(panel.currentPower),
+          retain: true,
+        },
+        {
+          topic: `${panelTopic}/gridVoltage`,
+          payload: String(panel.gridVoltage),
+          retain: true,
+        },
+        {
+          topic: `${panelTopic}/gridFrequency`,
+          payload: String(panel.gridFrequency),
+          retain: true,
+        },
+        {
+          topic: `${panelTopic}/temperature`,
+          payload: String(panel.temperature),
+          retain: true,
+        },
+      );
+    });
+  }
+
+  if (config.useHaMqtt) {
+    const carbon = {
+      trees: snapshot.treesPlanted,
+      gallons: snapshot.gallonsSaved,
+      carbon: snapshot.carbonOffset,
+    };
+
+    jobs.push(
+      {
+        topic: `${haBaseTopic}/json`,
+        payload: JSON.stringify(snapshot),
+        retain: true,
+      },
+      {
+        topic: `${haBaseTopic}/sensor/dailyGen/state`,
+        payload: String(snapshot.dailyGen),
+        retain: true,
+      },
+      {
+        topic: `${haBaseTopic}/sensor/currGen/state`,
+        payload: String(snapshot.currentSystemPower),
+        retain: true,
+      },
+      {
+        topic: `${haBaseTopic}/sensor/totalGen/state`,
+        payload: String(snapshot.totalGen),
+        retain: true,
+      },
+      {
+        topic: `${haBaseTopic}/sensor/carbonOffset/state`,
+        payload: JSON.stringify(carbon),
+        retain: true,
+      },
+    );
+
+    getHomeAssistantConfigs({ ...snapshot, data: sortedPanels }, config).forEach(
+      (job) => {
+        jobs.push({
+          topic: job.topic,
+          payload: JSON.stringify(job.payload),
+          retain: true,
+        });
+      },
+    );
+
+    sortedPanels.forEach((panel) => {
+      const panelTopic = `${haBaseTopic}/sensor/solar_panel_${panel.inverterID}`;
+      jobs.push({
+        topic: `${panelTopic}/state`,
+        payload: JSON.stringify({
+          power: panel.currentPower,
+          voltage: panel.gridVoltage,
+          frequency: panel.gridFrequency,
+          temperature: panel.temperature,
+        }),
+        retain: true,
+      });
+    });
+  }
+
+  if (config.useMqtt || config.useHaMqtt) {
+    jobs.push({
+      topic: `${baseTopic}/ping`,
+      payload: String(Date.now()),
+      retain: true,
+    });
+  }
+
+  return jobs;
 }
 
-const panelPowerConfig = {
-    name: "", // will be set dynamically
-    device_class: "power",
-    unit_of_meas: "W",
-    stat_t: "", // will be set dynamically 
-    icon: "mdi:solar-panel",
-    value_template: "{{ value_json.power }}",
-}
+function createMqttPublisher(config = defaultVars, mqttLib = mqtt) {
+  return function start(snapshotStore) {
+    const baseTopic = config.mqttTopic;
+    const haBaseTopic = config.haMqttTopic;
 
-const panelTempConfig = {
-    name: "", // will be set dynamically
-    device_class: "temperature",
-    unit_of_meas: "°C",
-    stat_t: "", // will be set dynamically
-    icon: "mdi:thermometer",
-    value_template: "{{ value_json.temperature }}",
-}
+    if (!config.useMqtt && !config.useHaMqtt) {
+      console.log("MQTT publishing disabled.");
+      return null;
+    }
 
-const panelFreqConfig = {
-    name: "", // will be set dynamically
-    unit_of_meas: "Hz",
-    stat_t: "", // will be set dynamically
-    icon: "mdi:waves",
-    value_template: "{{ value_json.frequency }}",
-}
-
-const panelVoltageConfig = {
-    name: "", // will be set dynamically
-    unit_of_meas: "V",
-    stat_t: "", // will be set dynamically
-    icon: "mdi:power-socket-us",
-    value_template: "{{ value_json.voltage }}",
-}
-
-async function mqttReports() {
-    const client = await mqtt.connect(mqttConnectString, {
-        username: vars.mqttUserName,
-        password: vars.mqttPass
-    })
-    
-    client.on("connect", () => {
-        var d = new Date();
-        console.log("Sending metrics to MQTT server " + mqttConnectString + " at " + d.toISOString() + "; base topic: " + baseTopic + "; HomeAssistant base topic: " + haBaseTopic);
+    const client = mqttLib.connect(config.mqttUrl, {
+      username: config.mqttUserName || undefined,
+      password: config.mqttPass || undefined,
+      connectTimeout: config.requestTimeoutMs,
+      reconnectPeriod: 5000,
     });
 
-    const result = await getResults();
-    // sort the inverter data so we get consistent panel names for homeasssistant
-    result.data.sort(compare);
+    let publishQueue = Promise.resolve();
 
-    const carbon = {
-        trees: result.treesPlanted,
-        gallons: result.gallonsSaved,
-        carbon: result.carbonOffset
-    }
+    client.on("connect", () => {
+      console.log(
+        `Connected to MQTT server ${config.mqttUrl}; base topic: ${baseTopic}; Home Assistant base topic: ${haBaseTopic}`,
+      );
+    });
 
-    try {
-        if (vars.useMqtt) {
-            // publish baseline stuff to the non-HomeAssistant topic
-            await client.publish(baseTopic + "/dailyGen", String(result.dailyGen));
-            await client.publish(baseTopic + "/totalGen", String(result.totalGen));
-            await client.publish(baseTopic + "/currentSystemPower", String(result.currentSystemPower));
-            await client.publish(baseTopic + "/treesPlanted", String(result.treesPlanted));
-            await client.publish(baseTopic + "/gallonsSaved", String(result.gallonsSaved));
-            await client.publish(baseTopic + "/carbonOffset", String(result.carbonOffset));
-            await client.publish(baseTopic + "/scraper/version", vars.vers);
-            await client.publish(baseTopic + "/scraper/hostname", vars.hostname);
-            await client.publish(baseTopic + "/scraper/azureBuildNumber", vars.azureBuildNumber);
-            await client.publish(baseTopic + "/scraper/ecuHost", vars.ecuHost);
-        }
+    client.on("reconnect", () => {
+      console.log("Reconnecting to MQTT server...");
+    });
 
-        if (vars.useHaMqtt) {
-            // publish to the HomeAssistant discovery topics
-            // HomeAssistant provides the ability to read a JSON-encoded payload, so dump all things to that
-            // outputted JSON will be equivalent to browsing the /json endpoint directly
-            await client.publish(haBaseTopic + "/json", JSON.stringify(result));
-            await client.publish(haBaseTopic + "/sensor/dailyGen/config", JSON.stringify(dailyGenConfig));
-            await client.publish(haBaseTopic + "/sensor/dailyGen/state", String(result.dailyGen));
-            await client.publish(haBaseTopic + "/sensor/currGen/config", JSON.stringify(currGenConfig));
-            await client.publish(haBaseTopic + "/sensor/currGen/state", String(result.currentSystemPower));
-            await client.publish(haBaseTopic + "/sensor/totalGen/config", JSON.stringify(totalGenConfig));
-            await client.publish(haBaseTopic + "/sensor/totalGen/state", String(result.totalGen));
-            await client.publish(haBaseTopic + "/sensor/carbonOffset/trees/config", JSON.stringify(treesConfig));
-            await client.publish(haBaseTopic + "/sensor/carbonOffset/gallons/config", JSON.stringify(gallonsConfig));
-            await client.publish(haBaseTopic + "/sensor/carbonOffset/carbon/config", JSON.stringify(carbonConfig));
-            await client.publish(haBaseTopic + "/sensor/carbonOffset/state", JSON.stringify(carbon));
-        }
+    client.on("error", (error) => {
+      console.error("MQTT client error:", error.message);
+    });
 
-        // sort the 
-
-
-        result.data.forEach((element, index) => { // per-panel stats
-            // publish homeassistant data
-            if (vars.useHaMqtt) {
-                var thisHaPanelTopic = haBaseTopic + "/sensor/solar_panel_" + element.inverterID;
-                panelPowerConfig.name = "Solar Panel " + (index+1) + " Power";
-                panelPowerConfig.stat_t = thisHaPanelTopic + "/state";
-                panelTempConfig.name = "Solar Panel " + (index+1) + " Temperature";
-                panelTempConfig.stat_t = thisHaPanelTopic + "/state";
-                panelVoltageConfig.name = "Solar Panel " + (index+1) + " Voltage";
-                panelVoltageConfig.stat_t = thisHaPanelTopic + "/state";
-                panelFreqConfig.name = "Solar Panel " + (index+1) + " Frequency";
-                panelFreqConfig.stat_t = thisHaPanelTopic + "/state";
-
-                thisHaPanelData = {
-                    power: element.currentPower,
-                    voltage: element.gridVoltage,
-                    frequency: element.gridFrequency,
-                    temperature: element.temperature
-                };
-
-                client.publish(thisHaPanelTopic + "/power/config", JSON.stringify(panelPowerConfig));
-                client.publish(thisHaPanelTopic + "/frequency/config", JSON.stringify(panelFreqConfig));
-                client.publish(thisHaPanelTopic + "/temperature/config", JSON.stringify(panelTempConfig));
-                client.publish(thisHaPanelTopic + "/voltage/config", JSON.stringify(panelVoltageConfig));
-                client.publish(thisHaPanelTopic + "/state", JSON.stringify(thisHaPanelData));
-            }
-
-            if (vars.useMqtt) {
-                // publish regular mqtt data
-                var thisTopic = baseTopic + "/panels/" + element.inverterID;
-                client.publish(thisTopic + "/currentPower", String(element.currentPower));
-                client.publish(thisTopic + "/gridVoltage", String(element.gridVoltage));
-                client.publish(thisTopic + "/gridFrequency", String(element.gridFrequency));
-                client.publish(thisTopic + "/temperature", String(element.temperature));
-            }
+    snapshotStore.on("snapshot", (snapshot) => {
+      publishQueue = publishQueue
+        .then(async () => {
+          const jobs = getPublishJobsForConfig(snapshot, config);
+          await Promise.all(
+            jobs.map((job) =>
+              publishAsync(client, job.topic, job.payload, {
+                retain: job.retain,
+                qos: 1,
+              }),
+            ),
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to publish MQTT snapshot:", error.message);
         });
-        if (vars.useMqtt || vars.useHaMqtt)
-        {
-            await client.publish(baseTopic + "/ping", String(Date.now()));
-            await client.end();
-        }
+    });
 
-    } catch (e) {
-        console.log(e.stack);
-    }
+    snapshotStore.on("refreshError", (error) => {
+      console.error(
+        "Skipping MQTT publish because scrape failed:",
+        error.message,
+      );
+    });
+
+    return client;
+  };
 }
 
-function compare(a, b) {
-    // Use toUpperCase() to ignore character casing
-    const inverterA = a.inverterID.toUpperCase();
-    const inverterB = b.inverterID.toUpperCase();
-
-    let comparison = 0;
-    if (inverterA > inverterB) {
-      comparison = 1;
-    } else if (inverterA < inverterB) {
-      comparison = -1;
-    }
-    return comparison;
-}
-  
-
-function start() {
-    if (vars.useMqtt || vars.useHaMqtt) {
-        mqttReports(); // run this once at startup, otherwise it waits 5 minutes to run the first time
-        setInterval(mqttReports, 300000) // hard coded to 5 minutes because that's how often the ECU updates
-    }
-}
-
+const start = createMqttPublisher();
 
 module.exports = start;
+module.exports.comparePanels = comparePanels;
+module.exports.publishAsync = publishAsync;
+module.exports.getPanelDiscoveryConfigs = getPanelDiscoveryConfigs;
+module.exports.getHomeAssistantConfigs = getHomeAssistantConfigs;
+module.exports.getPublishJobs = getPublishJobs;
+module.exports.getPublishJobsForConfig = getPublishJobsForConfig;
+module.exports.createMqttPublisher = createMqttPublisher;

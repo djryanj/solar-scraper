@@ -1,26 +1,34 @@
 extends layout
 block content
- h1 #{ecuName} at #{siteName} at #{ecuHost}
- h3 Current System Power: #{currentSystemPower} W
- h3 Daily Solar Generated: #{dailyGen} kWh
- h3 Lifetime Total Solar Generated: #{totalGen} kWh
- h3 Estimated Carbon Offset:
- ul
-    li #{treesPlanted} trees planted
-    li #{gallonsSaved} gallons of gas saved
-    li #{carbonOffset} KG of CO2
- h4 Inverter Statuses
- ul
-    each val in data
-        li Panel: #{val.inverterID}
-        ul
+   h1 #{ecuName} at #{siteName} at #{ecuHost}
+   h3 Current System Power: #{currentSystemPower} W
+   h3 Daily Solar Generated: #{dailyGen} kWh
+   h3 Lifetime Total Solar Generated: #{totalGen} kWh
+   h3 Estimated Carbon Offset:
+   ul
+      li #{treesPlanted} trees planted
+      li #{gallonsSaved} gallons of gas saved
+      li #{carbonOffset} KG of CO2
+   if isStale
+      p Snapshot is stale. Last successful scrape: #{lastSuccessAt}
+   else
+      p Last updated: #{generatedAt}
+   if lastError
+      p Last scrape error: #{lastError.message} at #{lastError.at}
+   h4 Inverter Statuses
+   ul
+      each val in data
+         li Panel: #{val.inverterID}
+         ul
             li Current power generation (W): #{val.currentPower}
             li Grid Frequency (Hz): #{val.gridFrequency}
             li Grid Voltage (V): #{val.gridVoltage}
             li Inverter Temperature (&#176C): #{val.temperature}
- hr
- div#version Solar Scraper Version: #{version}
-   br
-   | Running on #{hostname}
-   br
-   | Azure build #: #{azureBuildNumber}
+   hr
+   div#version Solar Scraper Version: #{version}
+      br
+      | Release: #{releaseVersion}
+      br
+      | Git SHA: #{gitSha}
+      br
+      | Running on #{hostname}

@@ -1,0 +1,88 @@
+name: Cleanup PR Container
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: solar-scraper
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Normalize image owner
+        run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Delete merged PR container versions
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GHCR_CLEANUP_TOKEN || github.token }}
+          script: |
+            const owner = process.env.IMAGE_OWNER;
+            const packageName = process.env.IMAGE_NAME;
+            const prefix = `pr-${context.payload.pull_request.number}`;
+
+            const { data: ownerDetails } = await github.request("GET /users/{username}", {
+              username: owner,
+            });
+
+            const isOrg = ownerDetails.type === "Organization";
+            const listRoute = isOrg
+              ? "GET /orgs/{org}/packages/container/{package_name}/versions"
+              : "GET /users/{username}/packages/container/{package_name}/versions";
+            const deleteRoute = isOrg
+              ? "DELETE /orgs/{org}/packages/container/{package_name}/versions/{package_version_id}"
+              : "DELETE /users/{username}/packages/container/{package_name}/versions/{package_version_id}";
+            const routeParams = isOrg
+              ? { org: owner, package_name: packageName, per_page: 100 }
+              : { username: owner, package_name: packageName, per_page: 100 };
+
+            let versions;
+
+            try {
+              versions = await github.paginate(listRoute, routeParams);
+            } catch (error) {
+              if (error.status === 404) {
+                core.notice(`Container package ${owner}/${packageName} does not exist yet.`);
+                return;
+              }
+
+              throw error;
+            }
+
+            const matches = versions.filter((version) => {
+              const tags = version.metadata?.container?.tags || [];
+              return tags.some((tag) => tag === prefix || tag.startsWith(`${prefix}-`));
+            });
+
+            if (matches.length === 0) {
+              core.notice(`No container versions found for ${prefix}.`);
+              return;
+            }
+
+            for (const version of matches) {
+              const params = isOrg
+                ? {
+                    org: owner,
+                    package_name: packageName,
+                    package_version_id: version.id,
+                  }
+                : {
+                    username: owner,
+                    package_name: packageName,
+                    package_version_id: version.id,
+                  };
+
+              await github.request(deleteRoute, params);
+              core.info(`Deleted ${packageName} version ${version.id}.`);
+            }
+
+            core.notice(`Deleted ${matches.length} container version(s) for ${prefix}.`);
