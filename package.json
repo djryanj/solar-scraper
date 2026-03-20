@@ -18,7 +18,7 @@
     "release:draft": "node ./scripts/create-release-draft.js"
   },
   "dependencies": {
-    "cheerio": "^1.1.2",
+    "cheerio": "^1.2.0",
     "debug": "^4.4.1",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
