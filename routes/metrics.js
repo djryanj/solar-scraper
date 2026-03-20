@@ -1,17 +1,11 @@
 const client = require("prom-client");
 const express = require("express");
 const router = express.Router();
-const getResults = require("../components/scraper");
+const snapshotStore = require("../components/snapshot-store");
 const register = new client.Registry();
-const cache = require("../components/cache");
 const vars = require("../components/vars");
 
-// might as well collect some stuff about this server
-const collectDefaultMetrics = client.collectDefaultMetrics;
-
-// Probe every 5th second and set to the registry we're using
-collectDefaultMetrics({ timeout: 5000 });
-collectDefaultMetrics({ register });
+client.collectDefaultMetrics({ register, prefix: "nodejs_" });
 
 // register all the guages
 const totalGen = new client.Gauge({
@@ -71,7 +65,7 @@ const panelHz = new client.Gauge({
 const scraperVersion = new client.Gauge({
   name: "solar_scraper_info",
   help: "Solar scraper version information",
-  labelNames: ["version", "hostname", "buildId", "ecuHost"],
+  labelNames: ["version", "hostname", "gitSha", "ecuHost"],
 });
 
 register.registerMetric(totalGen);
@@ -87,9 +81,9 @@ register.registerMetric(panelVoltage);
 register.registerMetric(scraperVersion);
 
 /* GET metrics page. */
-router.get("/", cache(vars.cacheLength), async function (req, res, next) {
+router.get("/", async function (req, res, next) {
   try {
-    const result = await getResults();
+    const result = await snapshotStore.getSnapshotOrRefresh();
 
     dailyGen.set(result.dailyGen);
     totalGen.set(result.totalGen);
@@ -98,18 +92,23 @@ router.get("/", cache(vars.cacheLength), async function (req, res, next) {
     gallonsOffset.set(result.gallonsSaved);
     carbonOffset.set(result.carbonOffset);
     scraperVersion
-      .labels(vars.vers, vars.hostname, vars.azureBuildNumber, vars.ecuHost)
+      .labels(vars.vers, vars.hostname, vars.gitSha, vars.ecuHost)
       .set(1);
 
-    result.data.forEach((element, index) => {
+    panelPower.reset();
+    panelVoltage.reset();
+    panelHz.reset();
+    panelTemp.reset();
+
+    result.data.forEach((element) => {
       panelPower.labels(element.inverterID).set(element.currentPower);
       panelVoltage.labels(element.inverterID).set(element.gridVoltage);
       panelHz.labels(element.inverterID).set(element.gridFrequency);
       panelTemp.labels(element.inverterID).set(element.temperature);
     });
-    console.log(register.contentType);
+
     res.set("Content-Type", register.contentType);
-    res.send(register.metrics());
+    res.send(await register.metrics());
   } catch (e) {
     next(e);
   }

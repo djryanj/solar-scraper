@@ -1,198 +1,141 @@
 const cheerio = require("cheerio");
-const axios = require("axios");
 const vars = require("./vars");
 
-const fetchSummaryData = async () => {
-    const result = await axios.get(vars.summaryUrl);
-    return cheerio.load(result.data);
-};
+async function fetchPage(url, config = vars, fetchImpl = fetch) {
+  const response = await fetchImpl(url, {
+    signal: AbortSignal.timeout(config.requestTimeoutMs),
+  });
 
-const fetchRealTimeData = async () => {
-    const result = await axios.get(vars.realTimeDataURL);
-    const data = cheerio.load(result.data);
-    return cheerio.load(data.root().html());
-};
+  if (!response.ok) {
+    throw new Error(
+      `Request failed for ${url}: ${response.status} ${response.statusText}`,
+    );
+  }
 
-const getResults = async () => {
-    const $summ = await fetchSummaryData();
-    const $rt = await fetchRealTimeData();
-
-    ecuName = $summ('#ecu_title').text();
-    totalGen = parseFloat($summ('.panel-body table tbody tr:nth-child(2) td').text());
-    currentSystemPower = parseInt($summ('.panel-body table tbody tr:nth-child(3) td').text());
-    dailyGen = parseFloat($summ('.panel-body table tbody tr:nth-child(4) td').text());
-    carbonOffset = parseInt($summ('.list-group > .list-group-item:nth-child(6) center').text());
-    treesPlanted = parseInt($summ('.list-group > .list-group-item:nth-child(5) center').text());
-    gallonsSaved = parseInt($summ('.list-group > .list-group-item:nth-child(4) center').text());
-    siteName = vars.siteName;
-
-    tableParse2($rt);
-    var data = $rt("table").tableToJSON();
-    data = data.map(val => {
-        var rObj = {};
-        rObj.inverterID = val.inverterID;
-        rObj.currentPower = parseInt(val.currentPower) || 0;
-        rObj.gridFrequency = parseFloat(val.gridFrequency) || 0;
-        rObj.gridVoltage = parseInt(val.gridVoltage) || 0;
-        rObj.temperature = parseInt(val.temperature) || 0;
-        rObj.reportingTime = val.reportingTime;
-        return rObj;
-    });
-
-    return {
-        totalGen,
-        dailyGen,
-        currentSystemPower,
-        siteName,
-        ecuName,        
-        carbonOffset,
-        gallonsSaved,
-        treesPlanted,
-        data,
-    };
-};
-
-function tableParse2($) {
-    // from https://jsfiddle.net/Mottie/4E2L6/9/
-    // modified to not use jquery by me
-    'use strict';
-
-    $.fn.tableToJSON = function(opts) {
-
-        // Set options
-        var defaults = {
-            onlyColumns: null,
-            ignoreHiddenRows: true,
-            headings: null,
-            allowHTML: false
-        };
-
-        opts = defaults;
-
-        var notNull = function(value) {
-            return value !== undefined && value !== null;
-        };
-
-        var arraysToHash = function(keys, values) {
-            var result = {},
-                index = 0;
-            values.forEach(function(value) {
-                if (index < keys.length && notNull(value)) {
-                    result[keys[index]] = value;
-                    index++;
-                }
-            });
-            return result;
-        };
-
-        var cellValues = function(cellIndex, cell) {
-            var value, result;
-            var override = $(cell).data('override');
-            if (opts.allowHTML) {
-                value = $(cell).html().trim();
-            } else {
-                value = $(cell).text().trim();
-            }
-            result = notNull(override) ? override : value;
-            return result;
-        };
-
-        var rowValues = function(row, camel) {
-            if (camel === undefined) {
-                camel = false;
-            }
-            var result = [];
-            $(row).children('td,th').each(function(cellIndex, cell) {
-                if (camel) {
-                    result.push(camelize(cellValues(cellIndex, cell)));
-                } else {
-                    result.push(cellValues(cellIndex, cell));
-                }
-
-            });
-            return result;
-        };
-
-        function camelize(str) {
-            // credit to https://stackoverflow.com/a/2970667
-            return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
-                if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
-                return index == 0 ? match.toLowerCase() : match.toUpperCase();
-            });
-        }
-
-        var getHeadings = function(table) {
-            var firstRow = table.find('tr:nth-child(1)').first();
-            return notNull(opts.headings) ? opts.headings : rowValues(firstRow, true);
-        };
-
-        var construct = function(table, headings) {
-            var i, j, len, len2, txt, $row, $cell,
-                tmpArray = [],
-                cellIndex = 0,
-                result = [];
-            table.children('tbody,*').children('tr').each(function(rowIndex, row) {
-                if (rowIndex > 0 || notNull(opts.headings)) {
-                    $row = $(row);
-                    if (!tmpArray[rowIndex]) {
-                        tmpArray[rowIndex] = [];
-                    }
-                    cellIndex = 0;
-                    $row.children().each(function() {
-                        $cell = $(this);
-
-                        // process rowspans
-                        if ($cell.filter('[rowspan]').length) {
-                            len = parseInt($cell.attr('rowspan'), 10) - 1;
-                            txt = cellValues(cellIndex, $cell, []);
-                            for (i = 1; i <= len; i++) {
-                                if (!tmpArray[rowIndex + i]) {
-                                    tmpArray[rowIndex + i] = [];
-                                }
-                                tmpArray[rowIndex + i][cellIndex] = txt;
-                            }
-                        }
-                        // process colspans
-                        if ($cell.filter('[colspan]').length) {
-                            len = parseInt($cell.attr('colspan'), 10) - 1;
-                            txt = cellValues(cellIndex, $cell, []);
-                            for (i = 1; i <= len; i++) {
-                                // cell has both col and row spans
-                                if ($cell.filter('[rowspan]').length) {
-                                    len2 = parseInt($cell.attr('rowspan'), 10);
-                                    for (j = 0; j < len2; j++) {
-                                        tmpArray[rowIndex + j][cellIndex + i] = txt;
-                                    }
-                                } else {
-                                    tmpArray[rowIndex][cellIndex + i] = txt;
-                                }
-                            }
-                        }
-                        // skip column if already defined
-                        while (tmpArray[rowIndex][cellIndex]) {
-                            cellIndex++;
-                        }
-                        txt = tmpArray[rowIndex][cellIndex] || cellValues(cellIndex, $cell, []);
-                        if (notNull(txt)) {
-                            tmpArray[rowIndex][cellIndex] = txt;
-                        }
-                        cellIndex++;
-                    });
-                }
-            });
-            tmpArray.forEach(function(row) {
-                if (notNull(row)) {
-                    txt = arraysToHash(headings, row);
-                    result[result.length] = txt;
-                }
-            });
-
-            return result;
-        };
-
-        var headings = getHeadings(this);
-        return construct(this, headings);
-    };
+  return response.text();
 }
 
+async function fetchSummaryData() {
+  const page = await fetchPage(vars.summaryUrl, vars);
+  return cheerio.load(page);
+}
+
+async function fetchRealTimeData() {
+  const page = await fetchPage(vars.realTimeDataURL, vars);
+  return cheerio.load(page);
+}
+
+function toCamelCase(value) {
+  return value
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_, character) => character.toUpperCase())
+    .replace(/^[A-Z]/, (character) => character.toLowerCase());
+}
+
+function parseInteger(value) {
+  const parsedValue = Number.parseInt(
+    String(value).replace(/[^0-9-]/g, ""),
+    10,
+  );
+  return Number.isNaN(parsedValue) ? 0 : parsedValue;
+}
+
+function parseFloatValue(value) {
+  const parsedValue = Number.parseFloat(String(value).replace(/[^0-9.-]/g, ""));
+  return Number.isNaN(parsedValue) ? 0 : parsedValue;
+}
+
+function parseTable($table) {
+  const rows = $table.find("tr").toArray();
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const headings = cheerio
+    .load(rows[0])("th, td")
+    .toArray()
+    .map((cell) => toCamelCase(cheerio.load(cell).text().trim()));
+
+  return rows.slice(1).map((row) => {
+    const values = cheerio
+      .load(row)("td, th")
+      .toArray()
+      .map((cell) => cheerio.load(cell).text().trim());
+
+    return headings.reduce((result, heading, index) => {
+      if (heading) {
+        result[heading] = values[index] || "";
+      }
+
+      return result;
+    }, {});
+  });
+}
+
+function parseResults(summaryMarkup, realtimeMarkup, siteName = vars.siteName) {
+  const $summ = cheerio.load(summaryMarkup);
+  const $rt = cheerio.load(realtimeMarkup);
+
+  const ecuName = $summ("#ecu_title").text().trim();
+  const totalGen = parseFloatValue(
+    $summ(".panel-body table tbody tr:nth-child(2) td").text(),
+  );
+  const currentSystemPower = parseInteger(
+    $summ(".panel-body table tbody tr:nth-child(3) td").text(),
+  );
+  const dailyGen = parseFloatValue(
+    $summ(".panel-body table tbody tr:nth-child(4) td").text(),
+  );
+  const carbonOffset = parseInteger(
+    $summ(".list-group > .list-group-item:nth-child(6) center").text(),
+  );
+  const treesPlanted = parseInteger(
+    $summ(".list-group > .list-group-item:nth-child(5) center").text(),
+  );
+  const gallonsSaved = parseInteger(
+    $summ(".list-group > .list-group-item:nth-child(4) center").text(),
+  );
+  const realtimeTable = $rt("table").first();
+  const data = parseTable(realtimeTable).map((value) => ({
+    inverterID: value.inverterID,
+    currentPower: parseInteger(value.currentPower),
+    gridFrequency: parseFloatValue(value.gridFrequency),
+    gridVoltage: parseInteger(value.gridVoltage),
+    temperature: parseInteger(value.temperature),
+    reportingTime: value.reportingTime || "",
+  }));
+
+  return {
+    totalGen,
+    dailyGen,
+    currentSystemPower,
+    siteName,
+    ecuName,
+    carbonOffset,
+    gallonsSaved,
+    treesPlanted,
+    data,
+  };
+}
+
+function createScraper(config = vars, fetchImpl = fetch) {
+  return async function getResults() {
+    const [summaryMarkup, realtimeMarkup] = await Promise.all([
+      fetchPage(config.summaryUrl, config, fetchImpl),
+      fetchPage(config.realTimeDataURL, config, fetchImpl),
+    ]);
+
+    return parseResults(summaryMarkup, realtimeMarkup, config.siteName);
+  };
+}
+
+const getResults = createScraper();
+
 module.exports = getResults;
+module.exports.createScraper = createScraper;
+module.exports.fetchPage = fetchPage;
+module.exports.parseResults = parseResults;
+module.exports.parseTable = parseTable;
+module.exports.parseInteger = parseInteger;
+module.exports.parseFloatValue = parseFloatValue;
+module.exports.toCamelCase = toCamelCase;

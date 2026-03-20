@@ -1,0 +1,87 @@
+name: PR Container
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: pr-container-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: solar-scraper
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Normalize image coordinates
+        run: |
+          echo "IMAGE_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+          echo "IMAGE_REPOSITORY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME}" >> "$GITHUB_ENV"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Generate container metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_REPOSITORY }}
+          tags: |
+            type=raw,value=pr-${{ github.event.pull_request.number }}
+            type=sha,prefix=pr-${{ github.event.pull_request.number }}-
+          labels: |
+            org.opencontainers.image.title=solar-scraper
+            org.opencontainers.image.description=APSolar ECU Prometheus exporter
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
+
+      - name: Build and optionally push PR image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            GIT_SHA=${{ github.event.pull_request.head.sha }}
+            GIT_REF=${{ github.event.pull_request.head.ref }}
+            RELEASE_VERSION=pr-${{ github.event.pull_request.number }}
+          push: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=pr-container
+          cache-to: type=gha,mode=max,scope=pr-container
+
+      - name: Write workflow summary
+        run: |
+          echo "## PR container" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" = "${{ github.repository }}" ]; then
+            echo "Published: ${IMAGE_REPOSITORY}:pr-${{ github.event.pull_request.number }}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Build completed without push because the PR originates from a fork." >> "$GITHUB_STEP_SUMMARY"
+          fi
