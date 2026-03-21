@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This repository uses GitHub Releases and Release Please to manage release notes and version history.
 
+## [0.4.3](https://github.com/djryanj/solar-scraper/compare/v0.4.2...v0.4.3) (2026-03-21)
+
+
+### Bug Fixes
+
+* **ci:** trigger release container from release-please and add workflow_dispatch ([f760c06](https://github.com/djryanj/solar-scraper/commit/f760c06f2de6e5851ebbcf5cb207ff88505ec474))
+
 ## [0.4.2](https://github.com/djryanj/solar-scraper/compare/v0.4.1...v0.4.2) (2026-03-21)
 
 
