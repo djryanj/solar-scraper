@@ -1,6 +1,6 @@
 {
   "name": "solar-scraper",
-  "version": "0.4.3",
+  "version": "0.4.0",
   "private": true,
   "engines": {
     "node": ">=24.14.0"
