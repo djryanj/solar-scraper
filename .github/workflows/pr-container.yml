@@ -62,7 +62,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
 
       - name: Build and optionally push PR image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
