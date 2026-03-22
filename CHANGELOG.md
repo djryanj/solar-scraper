@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 This repository uses GitHub Releases and Release Please to manage release notes and version history.
 
+## [0.4.4](https://github.com/djryanj/solar-scraper/compare/v0.4.3...v0.4.4) (2026-03-22)
+
+
+### Bug Fixes
+
+* **scraper:** handle ECU rowspan cells so dual-channel inverter B panels report correct grid frequency and temperature ([`components/scraper.js`](components/scraper.js))
+* **server:** suppress dotenv v17 verbose startup log with `quiet: true` ([`bin/www`](bin/www))
+
+
+### Tests
+
+* update scraper fixture and unit tests to cover dual-channel rowspan HTML structure
+* add live integration tests for real ECU scrape and MQTT pub/sub (`test/integration/live.test.js`)
+
+
+### Documentation
+
+* document live integration test variables and run instructions in README.MD and CONTRIBUTING.md
+
 ## [0.4.3](https://github.com/djryanj/solar-scraper/compare/v0.4.2...v0.4.3) (2026-03-21)
 
 

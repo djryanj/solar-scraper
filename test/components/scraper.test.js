@@ -32,6 +32,14 @@ test("parseResults extracts system and panel metrics from ECU pages", () => {
       temperature: 45,
       reportingTime: "2026-03-20 10:00:00",
     },
+    {
+      inverterID: "A-2",
+      currentPower: 95,
+      gridFrequency: 60.1,
+      gridVoltage: 238,
+      temperature: 45,
+      reportingTime: "2026-03-20 10:00:00",
+    },
   ]);
 });
 
@@ -69,7 +77,7 @@ test("createScraper fetches both ECU endpoints and parses the responses", async 
     "http://ecu.local/index.php/realtimedata",
   ]);
   assert.equal(result.siteName, "Roof Site");
-  assert.equal(result.data.length, 2);
+  assert.equal(result.data.length, 3);
 });
 
 test("fetchPage surfaces HTTP failures with context", async () => {
