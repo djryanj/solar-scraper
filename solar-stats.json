@@ -1071,12 +1071,12 @@
             "uid": "$datasource"
           },
           "exemplar": true,
-          "expr": "sum_over_time(solar_panel_power[$__interval])/1000*(5/60)",
+          "expr": "sum(sum_over_time(solar_panel_power[$__interval]))/1000*(5/60)",
           "hide": false,
           "instant": false,
           "interval": "10m",
           "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "Calculated Solar Generation",
           "refId": "A"
         },
         {

@@ -56,11 +56,34 @@ function parseTable($table) {
     .toArray()
     .map((cell) => toCamelCase(cheerio.load(cell).text().trim()));
 
+  const colCount = headings.length;
+  // carries[col] holds a value spanning multiple rows due to rowspan
+  const carries = new Array(colCount).fill(null);
+
   return rows.slice(1).map((row) => {
-    const values = cheerio
-      .load(row)("td, th")
-      .toArray()
-      .map((cell) => cheerio.load(cell).text().trim());
+    const cells = cheerio.load(row)("td, th").toArray();
+    let cellIndex = 0;
+    const values = [];
+
+    for (let col = 0; col < colCount; col++) {
+      if (carries[col] !== null) {
+        values.push(carries[col].value);
+        carries[col].remaining -= 1;
+        if (carries[col].remaining === 0) {
+          carries[col] = null;
+        }
+      } else {
+        const cell = cells[cellIndex++];
+        const value = cell ? cheerio.load(cell).text().trim() : "";
+        const rowspan = cell
+          ? Number.parseInt(cell.attribs?.rowspan || "1", 10)
+          : 1;
+        values.push(value);
+        if (rowspan > 1) {
+          carries[col] = { value, remaining: rowspan - 1 };
+        }
+      }
+    }
 
     return headings.reduce((result, heading, index) => {
       if (heading) {

@@ -3,7 +3,7 @@
 /**
  * Module dependencies.
  */
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 
 const app = require("../components/app");
 const debug = require("debug")("solar-scraper:server");

@@ -22,6 +22,18 @@ Use coverage when you are changing behavior or expanding the test suite:
 npm run test:coverage
 ```
 
+### Live Integration Tests
+
+`test/integration/live.test.js` requires a real ECU and/or MQTT broker and is skipped in normal `npm test` runs when the environment variables below are not set.
+
+Run them explicitly against real hardware:
+
+```bash
+ECU_HOST=192.168.100.2 MQTT_HOST=mqtt.mosquitto node --test test/integration/live.test.js
+```
+
+See [README.MD](README.MD) for the full variable reference. When adding new live tests, keep them in this file and guard them with the same `skip:` pattern so CI is never broken.
+
 ## Commit Messages
 
 This repository uses Release Please, so Conventional Commits are preferred.

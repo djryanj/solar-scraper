@@ -42,6 +42,28 @@ Print a terminal coverage summary with `npm run test:coverage`.
 
 Use `npm run test:watch` while iterating locally.
 
+### Live Integration Tests
+
+The file `test/integration/live.test.js` contains tests that talk to a real ECU and a real MQTT broker. They are **skipped automatically** when the required environment variables are absent, so `npm test` always passes in CI and on machines without hardware access.
+
+To run them, set the relevant variables before invoking the test runner:
+
+```bash
+ECU_HOST=192.168.100.2 MQTT_HOST=mqtt.mosquitto node --test test/integration/live.test.js
+```
+
+| Variable | Required for | Default | Description |
+|---|---|---|---|
+| `ECU_HOST` | ECU test | — | IP address or hostname of the real APSolar ECU |
+| `MQTT_HOST` | MQTT test | — | Hostname or IP of the MQTT broker |
+| `MQTT_PORT` | MQTT test | `1883` | Port of the MQTT broker |
+| `MQTT_USERNAME` | MQTT test | — | Username if the broker requires authentication |
+| `MQTT_PASSWORD` | MQTT test | — | Password if the broker requires authentication |
+
+The ECU test scrapes both ECU endpoints and validates that the parsed panel data is structurally correct — in particular that `gridFrequency` values fall in the Hz range and are not accidentally populated with voltage values (regression for the dual-channel `rowspan` parsing bug).
+
+The MQTT test opens a dedicated publisher and subscriber client, publishes a JSON payload to `solar-scraper/integration-test` at QoS 1, and asserts the subscriber receives the identical message. The topic uses `retain: false` so no state is left on the broker after the test completes.
+
 ## Repository Files
 
 - [CHANGELOG.md](CHANGELOG.md) tracks notable releases and points to Release Please as the long-term source of generated release history.
