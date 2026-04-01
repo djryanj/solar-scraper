@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.22
+# syntax=docker/dockerfile:1.23
 
 FROM mcr.microsoft.com/devcontainers/javascript-node:24-bookworm
 
