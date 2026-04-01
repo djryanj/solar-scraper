@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 This repository uses GitHub Releases and Release Please to manage release notes and version history.
 
+## [0.4.5](https://github.com/djryanj/solar-scraper/compare/v0.4.4...v0.4.5) (2026-04-01)
+
+
+### Bug Fixes
+
+* **ci:** use releases_created and .--tag_name for release-please manifest mode outputs ([10aab6e](https://github.com/djryanj/solar-scraper/commit/10aab6e5af87070fb5f090d7ee47fbb5234d1744))
+* **deps:** update dependency mqtt to ^5.15.1 ([fd1068c](https://github.com/djryanj/solar-scraper/commit/fd1068c2d16fcefd3b3547245e4cd74c5a528f0c))
+* **deps:** update dependency mqtt to ^5.15.1 ([d705490](https://github.com/djryanj/solar-scraper/commit/d705490459146b43f4db3e0d3c6d3981df1e0234))
+
 ## [0.4.4](https://github.com/djryanj/solar-scraper/compare/v0.4.3...v0.4.4) (2026-03-22)
 
 
