@@ -104,7 +104,10 @@ jobs:
             print("Entry already exists in CHANGELOG.md")
             sys.exit(0)
 
-          heading_re = re.compile(r"^## \[([^\]]+)\] - (.+)$")
+          heading_re = re.compile(
+            r"^## \[([^\]]+)\](?:\([^)]*\))?"
+            r"(?:\s+-\s+(.+)|\s+\(([^)]+)\))$"
+          )
           version_re = re.compile(r"^\d+\.\d+\.\d+(?:-[A-Za-z0-9][A-Za-z0-9.-]*)?$")
           lines = text.splitlines()
 
@@ -132,7 +135,8 @@ jobs:
               print("Could not parse the first changelog section heading.", file=sys.stderr)
               sys.exit(1)
 
-            heading_name, heading_date = heading_match.groups()
+            heading_name = heading_match.group(1)
+            heading_date = heading_match.group(2) or heading_match.group(3) or ""
             target_existing_section = bool(version_re.match(heading_name)) or heading_date == "Unreleased"
 
             if not target_existing_section:
