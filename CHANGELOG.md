@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This repository uses GitHub Releases and Release Please to manage release notes and version history.
 
+## [0.4.6](https://github.com/djryanj/solar-scraper/compare/v0.4.5...v0.4.6) (2026-04-18)
+
+
+### Bug Fixes
+
+* **ci:** use unprefixed `tag_name` output from release-please for root package releases
+* **ci:** run PR container cleanup on all closed PRs, not only merged ones
+
 ## [0.4.5](https://github.com/djryanj/solar-scraper/compare/v0.4.4...v0.4.5) (2026-04-18)
 
 
