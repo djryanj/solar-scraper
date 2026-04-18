@@ -5,6 +5,15 @@ on:
     types:
       - opened
       - reopened
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to update changelog for'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,30 +21,61 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: auto-changelog-${{ github.event.pull_request.number }}
+  group: auto-changelog-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
   update-changelog:
     name: Update Changelog
     if: >-
-      (github.event.pull_request.user.login == 'dependabot[bot]' ||
-      github.event.pull_request.user.login == 'github-actions[bot]' ||
-      github.event.pull_request.user.login == 'renovate[bot]') &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      (github.event_name == 'pull_request_target' &&
+        (github.event.pull_request.user.login == 'dependabot[bot]' ||
+        github.event.pull_request.user.login == 'github-actions[bot]' ||
+        github.event.pull_request.user.login == 'renovate[bot]') &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        startsWith(github.event.comment.body, '/auto-changelog')) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve PR details
+        id: pr
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+          script: |
+            let pr;
+            if (context.eventName === 'pull_request_target') {
+              pr = context.payload.pull_request;
+            } else {
+              const prNumber = context.eventName === 'issue_comment'
+                ? context.payload.issue.number
+                : parseInt(process.env.INPUT_PR_NUMBER);
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              });
+              pr = data;
+            }
+            core.setOutput('number', String(pr.number));
+            core.setOutput('title', pr.title);
+            core.setOutput('html_url', pr.html_url);
+            core.setOutput('head_ref', pr.head.ref);
+
       - name: Checkout PR branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ steps.pr.outputs.head_ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update CHANGELOG.md
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_TITLE: ${{ steps.pr.outputs.title }}
+          PR_URL: ${{ steps.pr.outputs.html_url }}
         run: |
           set -euo pipefail
 
@@ -155,17 +195,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md
-          git commit -m "docs: update CHANGELOG.md for PR #${{ github.event.pull_request.number }}"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git commit -m "docs: update CHANGELOG.md for PR #${{ steps.pr.outputs.number }}"
+          git push origin HEAD:${{ steps.pr.outputs.head_ref }}
 
       - name: Comment on PR
         if: steps.check_changes.outputs.changed == 'true'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: parseInt('${{ steps.pr.outputs.number }}'),
               body: 'CHANGELOG.md has been automatically updated for this bot PR.',
             });
