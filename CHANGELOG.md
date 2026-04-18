@@ -6,6 +6,19 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ## [0.4.5](https://github.com/djryanj/solar-scraper/compare/v0.4.4...v0.4.5) (2026-04-18)
 
+
+### Bug Fixes
+
+* actions version ([2ac87e6](https://github.com/djryanj/solar-scraper/commit/2ac87e67811482588bf3f867db0e104b58a3b8e9))
+* **ci:** use releases_created and .--tag_name for release-please manifest mode outputs ([10aab6e](https://github.com/djryanj/solar-scraper/commit/10aab6e5af87070fb5f090d7ee47fbb5234d1744))
+* **deps:** update dependency dotenv to ^17.4.1 ([ea167df](https://github.com/djryanj/solar-scraper/commit/ea167df0fcec176d08ea280f51fba7da8e39839d))
+* **deps:** update dependency dotenv to ^17.4.1 ([7f2274e](https://github.com/djryanj/solar-scraper/commit/7f2274ec5a41ef5b33f0f00f9f999fa8631dd150))
+* **deps:** update dependency mqtt to ^5.15.1 ([fd1068c](https://github.com/djryanj/solar-scraper/commit/fd1068c2d16fcefd3b3547245e4cd74c5a528f0c))
+* **deps:** update dependency mqtt to ^5.15.1 ([d705490](https://github.com/djryanj/solar-scraper/commit/d705490459146b43f4db3e0d3c6d3981df1e0234))
+* **deps:** update npm dependencies ([#67](https://github.com/djryanj/solar-scraper/issues/67)) ([3eb8de4](https://github.com/djryanj/solar-scraper/commit/3eb8de48f14e1bc3f307ee68924c0180a7651d4e))
+
+## [0.4.5](https://github.com/djryanj/solar-scraper/compare/v0.4.4...v0.4.5) (2026-04-18)
+
 ### Changed
 
 - chore(deps): update actions/github-script action to v9 [#66](https://github.com/djryanj/solar-scraper/pull/66)
