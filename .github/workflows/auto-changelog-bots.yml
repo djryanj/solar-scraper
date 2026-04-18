@@ -1,0 +1,171 @@
+name: Auto Changelog for Bots
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: auto-changelog-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  update-changelog:
+    name: Update Changelog
+    if: >-
+      (github.event.pull_request.user.login == 'dependabot[bot]' ||
+      github.event.pull_request.user.login == 'github-actions[bot]' ||
+      github.event.pull_request.user.login == 'renovate[bot]') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+
+          echo "Processing PR #${PR_NUMBER}: ${PR_TITLE}"
+
+          if [ ! -f CHANGELOG.md ]; then
+            echo "CHANGELOG.md not found, skipping"
+            exit 0
+          fi
+
+          python3 <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          path = Path("CHANGELOG.md")
+          text = path.read_text(encoding="utf-8")
+          pr_number = os.environ["PR_NUMBER"]
+          pr_title = os.environ["PR_TITLE"]
+          pr_url = os.environ["PR_URL"]
+          entry = f"- {pr_title} ([#{pr_number}]({pr_url}))"
+          duplicate_marker = f"[#{pr_number}]({pr_url})"
+
+          if duplicate_marker in text:
+            print("Entry already exists in CHANGELOG.md")
+            sys.exit(0)
+
+          heading_re = re.compile(r"^## \[([^\]]+)\] - (.+)$")
+          version_re = re.compile(r"^\d+\.\d+\.\d+(?:-[A-Za-z0-9][A-Za-z0-9.-]*)?$")
+          lines = text.splitlines()
+
+          def section_block(item: str) -> list[str]:
+            return [
+              "## [Unreleased] - Unreleased",
+              "",
+              "### Changed",
+              "",
+              item,
+              "",
+            ]
+
+          heading_indexes = [index for index, line in enumerate(lines) if heading_re.match(line)]
+
+          if not heading_indexes:
+            if lines and lines[-1] != "":
+              lines.append("")
+            lines.extend(section_block(entry)[:-1])
+          else:
+            first_heading_index = heading_indexes[0]
+            heading_match = heading_re.match(lines[first_heading_index])
+
+            if heading_match is None:
+              print("Could not parse the first changelog section heading.", file=sys.stderr)
+              sys.exit(1)
+
+            heading_name, heading_date = heading_match.groups()
+            target_existing_section = bool(version_re.match(heading_name)) or heading_date == "Unreleased"
+
+            if not target_existing_section:
+              lines[first_heading_index:first_heading_index] = section_block(entry)
+            else:
+              next_heading_index = next(
+                (index for index in heading_indexes[1:] if index > first_heading_index),
+                len(lines),
+              )
+              changed_index = next(
+                (
+                  index
+                  for index in range(first_heading_index + 1, next_heading_index)
+                  if lines[index] == "### Changed"
+                ),
+                None,
+              )
+
+              if changed_index is not None:
+                insert_at = changed_index + 1
+
+                if insert_at < len(lines) and lines[insert_at] == "":
+                  insert_at += 1
+                  lines[insert_at:insert_at] = [entry]
+                else:
+                  lines[insert_at:insert_at] = ["", entry]
+              else:
+                first_subheading_index = next(
+                  (
+                    index
+                    for index in range(first_heading_index + 1, next_heading_index)
+                    if lines[index].startswith("### ")
+                  ),
+                  next_heading_index,
+                )
+                block = ["", "### Changed", "", entry]
+
+                if first_subheading_index < len(lines):
+                  block.append("")
+
+                lines[first_subheading_index:first_subheading_index] = block
+
+          path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+          echo "Successfully added entry to CHANGELOG.md"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Commit changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for PR #${{ github.event.pull_request.number }}"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+      - name: Comment on PR
+        if: steps.check_changes.outputs.changed == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'CHANGELOG.md has been automatically updated for this bot PR.',
+            });
