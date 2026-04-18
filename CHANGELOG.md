@@ -10,6 +10,11 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 * chore(deps): update actions/github-script action to v9 ([#71](https://github.com/djryanj/solar-scraper/pull/71))
 * ci: add auto-changelog workflow for bot PRs
 
+
+### Changed
+
+- fix(deps): update npm dependencies ([#67](https://github.com/djryanj/solar-scraper/pull/67))
+
 ## [0.4.4](https://github.com/djryanj/solar-scraper/compare/v0.4.3...v0.4.4) (2026-03-22)
 
 ### Bug Fixes
