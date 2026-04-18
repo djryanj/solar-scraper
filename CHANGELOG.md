@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): lock file maintenance ([#68](https://github.com/djryanj/solar-scraper/pull/68))
 - chore(deps): update actions/github-script action to v9 [#66](https://github.com/djryanj/solar-scraper/pull/66)
 - chore(deps): update actions/github-script action to v9 ([#71](https://github.com/djryanj/solar-scraper/pull/71))
 - ci: add auto-changelog workflow for bot PRs
