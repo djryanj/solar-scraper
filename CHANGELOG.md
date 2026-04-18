@@ -4,19 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This repository uses GitHub Releases and Release Please to manage release notes and version history.
 
-## [0.4.4](https://github.com/djryanj/solar-scraper/compare/v0.4.3...v0.4.4) (2026-03-22)
+## [0.4.5](https://github.com/djryanj/solar-scraper/compare/v0.4.4...v0.4.5) (2026-04-18)
 
+* chore(deps): update actions/github-script action to v9 [#66](https://github.com/djryanj/solar-scraper/pull/66)
+
+## [0.4.4](https://github.com/djryanj/solar-scraper/compare/v0.4.3...v0.4.4) (2026-03-22)
 
 ### Bug Fixes
 
 * dotenv message, scraper incorrectly parsing B panels ([40265e0](https://github.com/djryanj/solar-scraper/commit/40265e09624c90c5f83cb56973c03e15864cea39))
 * dotenv message, scraper incorrectly parsing B panels ([70021eb](https://github.com/djryanj/solar-scraper/commit/70021ebe4417a1c7c16ca09ed73f0b2f72d00f94))
-
-## [0.4.4](https://github.com/djryanj/solar-scraper/compare/v0.4.3...v0.4.4) (2026-03-22)
-
-
-### Bug Fixes
-
 * **scraper:** handle ECU rowspan cells so dual-channel inverter B panels report correct grid frequency and temperature ([`components/scraper.js`](components/scraper.js))
 * **server:** suppress dotenv v17 verbose startup log with `quiet: true` ([`bin/www`](bin/www))
 
