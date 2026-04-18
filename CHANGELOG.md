@@ -52,6 +52,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): update actions/github-script action to v9 ([#72](https://github.com/djryanj/solar-scraper/pull/72))
 - Modernized the Node.js 24 runtime and container build.
 - Added snapshot-based scraping, MQTT publishing updates, and improved runtime metadata.
 - Added unit and integration test coverage with the built-in Node test runner.
