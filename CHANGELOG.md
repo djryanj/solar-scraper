@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): update node.js to v24.15.0 ([#70](https://github.com/djryanj/solar-scraper/pull/70))
 - chore(deps): update dependency node to v24.15.0 ([#69](https://github.com/djryanj/solar-scraper/pull/69))
 - chore(deps): lock file maintenance ([#68](https://github.com/djryanj/solar-scraper/pull/68))
 - chore(deps): update actions/github-script action to v9 [#66](https://github.com/djryanj/solar-scraper/pull/66)
