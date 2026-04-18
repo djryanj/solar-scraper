@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.23
 
-FROM node:24.14.1-alpine AS build
+FROM node:24.15.0-alpine AS build
 
 ARG GIT_SHA=missingGitSha
 ARG GIT_REF=container
