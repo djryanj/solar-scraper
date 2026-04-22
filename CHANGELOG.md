@@ -7,6 +7,11 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 ## [0.4.6](https://github.com/djryanj/solar-scraper/compare/v0.4.5...v0.4.6) (2026-04-18)
 
 
+
+### Changed
+
+- chore(deps): update googleapis/release-please-action action to v5 ([#77](https://github.com/djryanj/solar-scraper/pull/77))
+
 ### Bug Fixes
 
 * release 0.4.6 ([98ec456](https://github.com/djryanj/solar-scraper/commit/98ec456e78128cad7b5588d2271cd0428ba9de2e))
