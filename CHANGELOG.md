@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): update node.js to >=24.16.0 ([#81](https://github.com/djryanj/solar-scraper/pull/81))
 - chore(deps): lock file maintenance ([#76](https://github.com/djryanj/solar-scraper/pull/76))
 - chore(deps): update googleapis/release-please-action action to v5 ([#77](https://github.com/djryanj/solar-scraper/pull/77))
 
