@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): bump qs from 6.15.1 to 6.15.2 ([#83](https://github.com/djryanj/solar-scraper/pull/83))
 - chore(deps): lock file maintenance ([#76](https://github.com/djryanj/solar-scraper/pull/76))
 - chore(deps): update googleapis/release-please-action action to v5 ([#77](https://github.com/djryanj/solar-scraper/pull/77))
 
