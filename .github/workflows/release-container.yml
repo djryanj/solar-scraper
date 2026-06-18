@@ -46,7 +46,7 @@ jobs:
           echo "RELEASE_VERSION=${release_version}" >> "$GITHUB_ENV"
 
       - name: Check out repository at release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag_name || github.event.release.tag_name }}
 
