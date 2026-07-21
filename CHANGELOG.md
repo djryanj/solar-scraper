@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps-dev): bump brace-expansion from 5.0.5 to 5.0.7 ([#89](https://github.com/djryanj/solar-scraper/pull/89))
 - chore(deps): lock file maintenance ([#76](https://github.com/djryanj/solar-scraper/pull/76))
 - chore(deps): update googleapis/release-please-action action to v5 ([#77](https://github.com/djryanj/solar-scraper/pull/77))
 
