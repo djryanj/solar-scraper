@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): bump proxy-addr from 2.0.7 to 2.0.8 ([#91](https://github.com/djryanj/solar-scraper/pull/91))
 - chore(deps): update dependency morgan to v1.12.1 [security] ([#88](https://github.com/djryanj/solar-scraper/pull/88))
 - chore(deps): bump body-parser from 2.2.2 to 2.3.0 ([#90](https://github.com/djryanj/solar-scraper/pull/90))
 - chore(deps): lock file maintenance ([#76](https://github.com/djryanj/solar-scraper/pull/76))
