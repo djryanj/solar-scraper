@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): bump body-parser from 2.3.0 to 2.4.0 ([#92](https://github.com/djryanj/solar-scraper/pull/92))
 - chore(deps-dev): bump brace-expansion from 5.0.5 to 5.0.12 ([#89](https://github.com/djryanj/solar-scraper/pull/89))
 - chore(deps): bump proxy-addr from 2.0.7 to 2.0.8 ([#91](https://github.com/djryanj/solar-scraper/pull/91))
 - chore(deps): update dependency morgan to v1.12.1 [security] ([#88](https://github.com/djryanj/solar-scraper/pull/88))
