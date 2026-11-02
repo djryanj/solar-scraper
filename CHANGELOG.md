@@ -8,6 +8,7 @@ This repository uses GitHub Releases and Release Please to manage release notes 
 
 ### Changed
 
+- chore(deps): bump undici from 7.25.0 to 7.30.1 ([#86](https://github.com/djryanj/solar-scraper/pull/86))
 - chore(deps): bump body-parser from 2.3.0 to 2.4.0 ([#92](https://github.com/djryanj/solar-scraper/pull/92))
 - chore(deps-dev): bump brace-expansion from 5.0.5 to 5.0.12 ([#89](https://github.com/djryanj/solar-scraper/pull/89))
 - chore(deps): bump proxy-addr from 2.0.7 to 2.0.8 ([#91](https://github.com/djryanj/solar-scraper/pull/91))
